@@ -1,0 +1,119 @@
+import { useEffect, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { useGroupStore } from '@/store/useGroupStore';
+import { validatePerson } from '@/lib/validation';
+import { colorFromString } from '@/lib/avatar';
+import type { Person } from '@/types';
+
+interface PersonFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Present when editing an existing person. */
+  person?: Person;
+}
+
+export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialogProps) {
+  const addPerson = useGroupStore((s) => s.addPerson);
+  const updatePerson = useGroupStore((s) => s.updatePerson);
+  const people = useGroupStore((s) => s.people);
+
+  const [name, setName] = useState('');
+  const [photo, setPhoto] = useState<string | undefined>();
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    if (!open) return;
+    setName(person?.name ?? '');
+    setPhoto(person?.avatarPhoto);
+    setError(undefined);
+  }, [open, person]);
+
+  const duplicate =
+    name.trim().length > 0 &&
+    people.some(
+      (p) => p.id !== person?.id && p.name.trim().toLowerCase() === name.trim().toLowerCase(),
+    );
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const validation = validatePerson({ name });
+    if (!validation.valid) {
+      setError(validation.errors.name);
+      return;
+    }
+
+    if (person) {
+      updatePerson(person.id, { name, avatarPhoto: photo });
+      toast.success('Person updated');
+    } else {
+      addPerson(name, photo);
+      toast.success(`${name.trim()} added to the group`);
+    }
+    onOpenChange(false);
+  };
+
+  return (
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+        <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>{person ? 'Edit person' : 'Add a person'}</DialogTitle>
+            <DialogDescription>
+              {person
+                ? 'Change their name or photo. Their expense history stays as it is.'
+                : 'They will be included in new expenses by default.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <AvatarUpload
+            name={name}
+            color={person?.avatarColor ?? colorFromString(name || 'new')}
+            photo={photo}
+            onChange={setPhoto}
+          />
+
+          <Field id="person-name" label="Name" error={error}>
+            {(fieldProps) => (
+              <Input
+                {...fieldProps}
+                value={name}
+                autoFocus
+                maxLength={40}
+                autoComplete="off"
+                placeholder="e.g. Priya"
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setError(undefined);
+                }}
+              />
+            )}
+          </Field>
+
+          {duplicate && !error && (
+            <p className="flex items-center gap-1.5 text-caption text-muted-foreground">
+              <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
+              Someone in this group already has that name. They will stay separate people.
+            </p>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit">{person ? 'Save changes' : 'Add person'}</Button>
+          </DialogFooter>
+        </form>
+    </ResponsiveDialog>
+  );
+}

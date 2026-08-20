@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Neutral base */
+    --background: 210 20% 98%;
+    --foreground: 222 33% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 33% 12%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 45%;
+    --border: 214 20% 90%;
+    --input: 214 20% 88%;
+    --ring: 243 75% 59%;
+
+    /* Semantic colors — exactly three: primary, positive, negative */
+    --primary: 243 75% 59%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 243 80% 96%;
+    --positive: 158 74% 27%;
+    --positive-soft: 152 60% 95%;
+    --negative: 0 72% 45%;
+    --negative-soft: 0 80% 96%;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans text-body antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Never remove focus affordance — replace it with a consistent one */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
