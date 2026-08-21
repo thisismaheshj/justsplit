@@ -10,12 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useGroupStore } from '@/store/useGroupStore';
 
-/** Danger zone: demo data loading and the irreversible reset. */
+/** Danger zone: demo data and deleting a group for good. */
 export function DataResetSection() {
   const navigate = useNavigate();
   const group = useGroupStore((s) => s.group);
-  const resetAll = useGroupStore((s) => s.resetAll);
-  const loadSeedData = useGroupStore((s) => s.loadSeedData);
+  const deleteActiveGroup = useGroupStore((s) => s.deleteActiveGroup);
+  const loadDemoData = useGroupStore((s) => s.loadDemoData);
 
   const [resetOpen, setResetOpen] = useState(false);
   const [seedOpen, setSeedOpen] = useState(false);
@@ -30,7 +30,7 @@ export function DataResetSection() {
         <div className="min-w-0">
           <p className="text-body font-medium">Load demo data</p>
           <p className="text-caption text-muted-foreground">
-            Replaces everything with a sample “Goa Trip” group — handy for a quick look around.
+Adds a sample “Goa Trip” group alongside your own — handy for a quick look around.
           </p>
         </div>
         <Button variant="secondary" size="sm" onClick={() => setSeedOpen(true)}>
@@ -47,7 +47,7 @@ export function DataResetSection() {
               Delete group data
             </p>
             <p className="mt-0.5 text-caption text-muted-foreground">
-              Wipes every person, expense, settlement and repeating template stored on this device.
+  Permanently deletes this group and everything in it, for every member.
             </p>
           </div>
           <Button variant="secondary" size="sm" className="text-negative" onClick={() => setResetOpen(true)}>
@@ -61,13 +61,19 @@ export function DataResetSection() {
         open={seedOpen}
         onOpenChange={setSeedOpen}
         title="Load demo data?"
-        description="Your current group and all of its expenses will be replaced by the sample data. This can't be undone."
+        description="A sample group is added to your account. Nothing you already have is touched."
         confirmLabel="Load demo data"
-        destructive
         onConfirm={() => {
-          loadSeedData();
-          toast.success('Demo group loaded');
-          navigate('/home');
+          void loadDemoData()
+            .then(() => {
+              toast.success('Demo group added');
+              navigate('/home');
+            })
+            .catch((error: unknown) =>
+              toast.error('Could not add the demo group', {
+                description: error instanceof Error ? error.message : String(error),
+              }),
+            );
         }}
       />
 
@@ -80,18 +86,25 @@ export function DataResetSection() {
         title="Delete everything?"
         description={
           <span>
-            This permanently removes all data for <strong>{groupName}</strong> from this browser.
-            There is no backup and this can't be undone.
+            This permanently deletes <strong>{groupName}</strong> and every expense, settlement
+            and repeating template in it, for everyone in the group. This can't be undone.
           </span>
         }
         confirmLabel="Delete all data"
         destructive
         confirmDisabled={!canReset}
         onConfirm={() => {
-          resetAll();
-          setConfirmText('');
-          toast.success('All data deleted');
-          navigate('/setup', { replace: true });
+          void deleteActiveGroup()
+            .then(() => {
+              setConfirmText('');
+              toast.success('Group deleted');
+              navigate('/', { replace: true });
+            })
+            .catch((error: unknown) =>
+              toast.error('Could not delete that group', {
+                description: error instanceof Error ? error.message : String(error),
+              }),
+            );
         }}
       >
         <div className="flex flex-col gap-1.5">

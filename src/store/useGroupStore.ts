@@ -1,71 +1,27 @@
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { toast } from 'sonner';
 import type {
   AppState,
   Category,
-  ExpenseInput,
   Expense,
+  ExpenseInput,
   Person,
   RecurringExpense,
   RecurringInput,
-  Settlement,
   SettlementInput,
 } from '@/types';
+import * as api from '@/lib/groupsApi';
+import type { GroupSummary } from '@/lib/groupsApi';
 import { computeSplit } from '@/lib/calculations';
 import { generateDueRecurringExpenses, anchorDayOf, nextOccurrence } from '@/lib/recurring';
 import { DEFAULT_CATEGORIES, categoryIdFromLabel, isDefaultCategory } from '@/lib/categories';
 import { colorFromString } from '@/lib/avatar';
 import { generateId } from '@/lib/id';
 import { todayString } from '@/lib/date';
-import { buildSeedData } from '@/lib/seedData';
 
-export const STORAGE_KEY = 'splitgroup-app-state-v1';
-export const STORAGE_VERSION = 1;
-
-export interface GroupStore extends AppState {
-  /** Flipped true once the persisted state has been read back. */
-  hydrated: boolean;
-  setHydrated: (value: boolean) => void;
-
-  // Setup
-  initializeGroup: (
-    groupName: string,
-    currency: string,
-    people: { name: string; avatarPhoto?: string }[],
-  ) => void;
-
-  // People
-  addPerson: (name: string, avatarPhoto?: string) => string;
-  updatePerson: (id: string, updates: Partial<Pick<Person, 'name' | 'avatarPhoto'>>) => void;
-  removePerson: (id: string) => void;
-
-  // Expenses
-  addExpense: (input: ExpenseInput) => string;
-  updateExpense: (id: string, input: ExpenseInput) => void;
-  deleteExpense: (id: string) => void;
-
-  // Settlements
-  addSettlement: (input: SettlementInput) => string;
-  updateSettlement: (id: string, input: SettlementInput) => void;
-  deleteSettlement: (id: string) => void;
-
-  // Recurring
-  addRecurringExpense: (input: RecurringInput) => string;
-  updateRecurringExpense: (id: string, input: RecurringInput) => void;
-  toggleRecurringActive: (id: string, active: boolean) => void;
-  deleteRecurringExpense: (id: string) => void;
-  runDueRecurringCheck: () => number;
-
-  // Categories
-  addCustomCategory: (label: string, icon: string) => void;
-  removeCustomCategory: (id: string) => void;
-
-  // Settings
-  updateGroupName: (name: string) => void;
-  updateCurrency: (currencyCode: string) => void;
-  loadSeedData: () => void;
-  resetAll: () => void;
-}
+/** Remembers which group you were last looking at. The ledger itself is not
+ *  cached here -- Postgres is the source of truth. */
+export const ACTIVE_GROUP_KEY = 'justsplit-active-group';
 
 const emptyState: AppState = {
   group: null,
@@ -80,76 +36,67 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function makePerson(name: string, avatarPhoto?: string): Person {
-  const id = generateId();
-  return {
-    id,
-    name: name.trim(),
-    avatarPhoto,
-    avatarColor: colorFromString(id),
-    createdAt: now(),
-  };
-}
-
-/**
- * Builds a stored Expense from raw form input. All split maths lives in
- * lib/calculations — the store only commits the result.
- */
-function buildExpense(input: ExpenseInput, existing?: Expense): Expense {
-  const participants = computeSplit(input.splitMethod, input.amount, input.participants);
-  return {
-    id: existing?.id ?? generateId(),
-    type: 'expense',
-    description: input.description.trim(),
-    amount: input.amount,
-    paidBy: input.paidBy,
-    participants,
-    splitMethod: input.splitMethod,
-    category: input.category,
-    date: input.date,
-    note: input.note?.trim() || undefined,
-    recurringExpenseId: input.recurringExpenseId ?? existing?.recurringExpenseId,
-    createdAt: existing?.createdAt ?? now(),
-    updatedAt: now(),
-  };
-}
-
-function buildSettlement(input: SettlementInput, existing?: Settlement): Settlement {
-  return {
-    id: existing?.id ?? generateId(),
-    type: 'settlement',
-    from: input.from,
-    to: input.to,
-    amount: input.amount,
-    date: input.date,
-    note: input.note?.trim() || undefined,
-    createdAt: existing?.createdAt ?? now(),
-    updatedAt: now(),
-  };
-}
-
-/**
- * True when saving a template should also record its first occurrence right
- * away (i.e. the start date is today or earlier).
- */
 export function shouldCreateFirstOccurrence(startDate: string): boolean {
   return startDate <= todayString();
 }
 
+export interface GroupStore extends AppState {
+  /** Active group id, or null before one is chosen. */
+  groupId: string | null;
+  /** Every group the signed-in user belongs to. */
+  groups: GroupSummary[];
+  /** True once a first load has settled, so routes stop guessing. */
+  hydrated: boolean;
+  loading: boolean;
+
+  setHydrated: (value: boolean) => void;
+  bootstrap: () => Promise<void>;
+  selectGroup: (groupId: string) => Promise<void>;
+  refresh: () => Promise<void>;
+  clearLocal: () => void;
+
+  createGroup: (
+    name: string,
+    currency: string,
+    people: { name: string; avatarPhoto?: string }[],
+  ) => Promise<string>;
+
+  addPerson: (name: string, avatarPhoto?: string) => string;
+  updatePerson: (id: string, updates: Partial<Pick<Person, 'name' | 'avatarPhoto'>>) => void;
+  removePerson: (id: string) => void;
+
+  addExpense: (input: ExpenseInput) => string;
+  updateExpense: (id: string, input: ExpenseInput) => void;
+  deleteExpense: (id: string) => void;
+
+  addSettlement: (input: SettlementInput) => string;
+  updateSettlement: (id: string, input: SettlementInput) => void;
+  deleteSettlement: (id: string) => void;
+
+  addRecurringExpense: (input: RecurringInput) => string;
+  updateRecurringExpense: (id: string, input: RecurringInput) => void;
+  toggleRecurringActive: (id: string, active: boolean) => void;
+  deleteRecurringExpense: (id: string) => void;
+  runDueRecurringCheck: () => number;
+
+  addCustomCategory: (label: string, icon: string) => void;
+  removeCustomCategory: (id: string) => void;
+
+  updateGroupName: (name: string) => void;
+  updateCurrency: (currencyCode: string) => void;
+  deleteActiveGroup: () => Promise<void>;
+  loadDemoData: () => Promise<string>;
+}
+
 function buildRecurring(input: RecurringInput, existing?: RecurringExpense): RecurringExpense {
-  // Validate the template split up-front so generated instances can never fail.
   const participants = computeSplit(input.splitMethod, input.amount, input.participants);
 
-  // When the caller has already recorded the start-date occurrence as a normal
-  // expense, the template schedules from the *following* cycle. Otherwise the
-  // start date itself is the first thing due.
   let nextDueDate = existing?.nextDueDate ?? input.startDate;
   if (!existing) {
     nextDueDate = input.firstOccurrenceCreated
       ? nextOccurrence(input.startDate, input.frequency, anchorDayOf(input.startDate))
       : input.startDate;
   } else if (existing.startDate !== input.startDate || existing.frequency !== input.frequency) {
-    // Start date or cadence changed — recompute the schedule from the new start.
     const anchor = anchorDayOf(input.startDate);
     let due = input.startDate;
     const today = todayString();
@@ -182,257 +129,445 @@ function buildRecurring(input: RecurringInput, existing?: RecurringExpense): Rec
   };
 }
 
-export const useGroupStore = create<GroupStore>()(
-  persist(
-    (set, get) => ({
-      ...emptyState,
-      hydrated: false,
-      setHydrated: (value) => set({ hydrated: value }),
+export const useGroupStore = create<GroupStore>()((set, get) => {
+  /**
+   * Apply a change locally straight away, then push it. If the write is
+   * rejected -- offline, or RLS saying no -- put the previous state back and
+   * say so, rather than leaving the screen showing something the server never
+   * accepted.
+   */
+  function optimistic(applyLocal: () => void, write: () => Promise<unknown>, label: string) {
+    const before: AppState = {
+      group: get().group,
+      people: get().people,
+      expenses: get().expenses,
+      settlements: get().settlements,
+      recurringExpenses: get().recurringExpenses,
+      categories: get().categories,
+    };
+    applyLocal();
+    void write().catch((error: unknown) => {
+      set({ ...before });
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`Could not ${label}`, { description: message });
+    });
+  }
 
-      /* ------------------------------ Setup ------------------------------ */
+  const requireGroup = (): string => {
+    const id = get().groupId;
+    if (!id) throw new Error('No group selected');
+    return id;
+  };
 
-      initializeGroup: (groupName, currency, people) =>
-        set({
-          group: {
-            id: generateId(),
-            name: groupName.trim(),
-            currency,
-            createdAt: now(),
-          },
-          people: people
-            .filter((p) => p.name.trim())
-            .map((p) => makePerson(p.name, p.avatarPhoto)),
-          expenses: [],
-          settlements: [],
-          recurringExpenses: [],
-          categories: DEFAULT_CATEGORIES,
-        }),
+  return {
+    ...emptyState,
+    groupId: null,
+    groups: [],
+    hydrated: false,
+    loading: false,
 
-      /* ------------------------------ People ----------------------------- */
+    setHydrated: (value) => set({ hydrated: value }),
 
-      addPerson: (name, avatarPhoto) => {
-        const person = makePerson(name, avatarPhoto);
-        set((state) => ({ people: [...state.people, person] }));
-        return person.id;
-      },
+    clearLocal: () => set({ ...emptyState, groupId: null, groups: [], hydrated: true }),
 
-      updatePerson: (id, updates) =>
-        set((state) => ({
-          people: state.people.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  ...('name' in updates && updates.name !== undefined
-                    ? { name: updates.name.trim() }
-                    : {}),
-                  ...('avatarPhoto' in updates ? { avatarPhoto: updates.avatarPhoto } : {}),
-                }
-              : p,
-          ),
-        })),
+    bootstrap: async () => {
+      set({ loading: true });
+      try {
+        const groups = await api.listGroups();
+        set({ groups });
 
-      /**
-       * Soft-remove: a person with any history is archived so historical
-       * participant references stay valid. Someone with no history at all is
-       * deleted outright. The last active person can never be removed.
-       */
-      removePerson: (id) => {
-        const state = get();
-        const activeCount = state.people.filter((p) => !p.archived).length;
-        if (activeCount <= 1) return;
-
-        const hasHistory =
-          state.expenses.some(
-            (e) => e.paidBy === id || e.participants.some((p) => p.personId === id),
-          ) ||
-          state.settlements.some((s) => s.from === id || s.to === id) ||
-          state.recurringExpenses.some(
-            (r) => r.paidBy === id || r.participants.some((p) => p.personId === id),
-          );
-
-        if (hasHistory) {
-          set({
-            people: state.people.map((p) => (p.id === id ? { ...p, archived: true } : p)),
-            // Pause any template that depended on this person.
-            recurringExpenses: state.recurringExpenses.map((r) =>
-              r.paidBy === id || r.participants.some((p) => p.personId === id)
-                ? { ...r, active: false, updatedAt: now() }
-                : r,
-            ),
-          });
-        } else {
-          set({ people: state.people.filter((p) => p.id !== id) });
-        }
-      },
-
-      /* ----------------------------- Expenses ---------------------------- */
-
-      addExpense: (input) => {
-        const expense = buildExpense(input);
-        set((state) => ({ expenses: [...state.expenses, expense] }));
-        return expense.id;
-      },
-
-      updateExpense: (id, input) =>
-        set((state) => ({
-          expenses: state.expenses.map((e) => (e.id === id ? buildExpense(input, e) : e)),
-        })),
-
-      deleteExpense: (id) =>
-        set((state) => ({ expenses: state.expenses.filter((e) => e.id !== id) })),
-
-      /* ---------------------------- Settlements -------------------------- */
-
-      addSettlement: (input) => {
-        const settlement = buildSettlement(input);
-        set((state) => ({ settlements: [...state.settlements, settlement] }));
-        return settlement.id;
-      },
-
-      updateSettlement: (id, input) =>
-        set((state) => ({
-          settlements: state.settlements.map((s) => (s.id === id ? buildSettlement(input, s) : s)),
-        })),
-
-      deleteSettlement: (id) =>
-        set((state) => ({ settlements: state.settlements.filter((s) => s.id !== id) })),
-
-      /* ----------------------------- Recurring --------------------------- */
-
-      addRecurringExpense: (input) => {
-        const template = buildRecurring(input);
-        set((state) => ({ recurringExpenses: [...state.recurringExpenses, template] }));
-        return template.id;
-      },
-
-      updateRecurringExpense: (id, input) =>
-        set((state) => ({
-          recurringExpenses: state.recurringExpenses.map((r) =>
-            r.id === id ? buildRecurring(input, r) : r,
-          ),
-        })),
-
-      toggleRecurringActive: (id, active) =>
-        set((state) => ({
-          recurringExpenses: state.recurringExpenses.map((r) =>
-            r.id === id ? { ...r, active, updatedAt: now() } : r,
-          ),
-        })),
-
-      /** Deleting a template leaves already-generated expenses untouched. */
-      deleteRecurringExpense: (id) =>
-        set((state) => ({
-          recurringExpenses: state.recurringExpenses.filter((r) => r.id !== id),
-        })),
-
-      runDueRecurringCheck: () => {
-        const state = get();
-        if (!state.group) return 0;
-
-        const results = generateDueRecurringExpenses(state.recurringExpenses, todayString());
-        const ids = Object.keys(results);
-        if (ids.length === 0) return 0;
-
-        const newExpenses: Expense[] = [];
-        for (const id of ids) {
-          for (const input of results[id].expenses) {
-            newExpenses.push(buildExpense(input));
-          }
+        if (groups.length === 0) {
+          set({ ...emptyState, groupId: null, hydrated: true, loading: false });
+          return;
         }
 
-        set({
-          expenses: newExpenses.length ? [...state.expenses, ...newExpenses] : state.expenses,
-          recurringExpenses: state.recurringExpenses.map((r) => {
-            const generated = results[r.id];
-            if (!generated) return r;
-            return {
-              ...r,
-              nextDueDate: generated.nextDueDate,
-              active: generated.active,
-              updatedAt: now(),
-            };
-          }),
+        const remembered = localStorage.getItem(ACTIVE_GROUP_KEY);
+        const active = groups.find((g) => g.id === remembered) ?? groups[0];
+        await get().selectGroup(active.id);
+      } catch (error) {
+        set({ hydrated: true, loading: false });
+        toast.error('Could not load your groups', {
+          description: error instanceof Error ? error.message : String(error),
         });
-
-        return newExpenses.length;
-      },
-
-      /* ---------------------------- Categories --------------------------- */
-
-      addCustomCategory: (label, icon) =>
-        set((state) => {
-          const id = categoryIdFromLabel(
-            label,
-            state.categories.map((c) => c.id),
-          );
-          const category: Category = { id, label: label.trim(), icon, isCustom: true };
-          return { categories: [...state.categories, category] };
-        }),
-
-      /** Default categories are permanent; expenses using a removed custom
-       *  category fall back to "other" so nothing dangles. */
-      removeCustomCategory: (id) =>
-        set((state) => {
-          if (isDefaultCategory(id)) return state;
-          return {
-            categories: state.categories.filter((c) => c.id !== id),
-            expenses: state.expenses.map((e) =>
-              e.category === id ? { ...e, category: 'other', updatedAt: now() } : e,
-            ),
-            recurringExpenses: state.recurringExpenses.map((r) =>
-              r.category === id ? { ...r, category: 'other', updatedAt: now() } : r,
-            ),
-          };
-        }),
-
-      /* ----------------------------- Settings ---------------------------- */
-
-      updateGroupName: (name) =>
-        set((state) => ({
-          group: state.group ? { ...state.group, name: name.trim() } : state.group,
-        })),
-
-      /** Relabels formatting only — stored minor-unit amounts are untouched. */
-      updateCurrency: (currencyCode) =>
-        set((state) => ({
-          group: state.group ? { ...state.group, currency: currencyCode } : state.group,
-        })),
-
-      loadSeedData: () => set({ ...buildSeedData(), hydrated: true }),
-
-      resetAll: () => {
-        set({ ...emptyState, hydrated: true });
-        try {
-          localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          /* storage unavailable — in-memory reset is enough */
-        }
-      },
-    }),
-    {
-      name: STORAGE_KEY,
-      version: STORAGE_VERSION,
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state): AppState => ({
-        group: state.group,
-        people: state.people,
-        expenses: state.expenses,
-        settlements: state.settlements,
-        recurringExpenses: state.recurringExpenses,
-        categories: state.categories,
-      }),
-      /** No-op today; the hook is here so future schema bumps have a home. */
-      migrate: (persisted, version) => {
-        let state = persisted as Partial<AppState> | undefined;
-        if (!state) return { ...emptyState };
-        if (version < 1) {
-          state = { ...emptyState, ...state };
-        }
-        return { ...emptyState, ...state } as AppState;
-      },
-      onRehydrateStorage: () => (state) => {
-        state?.setHydrated(true);
-      },
+      }
     },
-  ),
-);
+
+    selectGroup: async (groupId) => {
+      set({ loading: true });
+      try {
+        const snapshot = await api.loadGroup(groupId);
+        localStorage.setItem(ACTIVE_GROUP_KEY, groupId);
+        set({ ...snapshot, groupId, hydrated: true, loading: false });
+      } catch (error) {
+        set({ hydrated: true, loading: false });
+        toast.error('Could not open that group', {
+          description: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+
+    refresh: async () => {
+      const id = get().groupId;
+      if (id) await get().selectGroup(id);
+    },
+
+    createGroup: async (name, currency, people) => {
+      const groupId = await api.createGroup(name, currency, people[0]?.name);
+
+      // create_group seeds a row for the signed-in user, so the first name in
+      // the list is already taken -- only the rest need adding.
+      const existing = await api.loadGroup(groupId);
+      const seat = existing.people[0];
+      if (seat && people[0]) {
+        await api.updateMember(seat.id, {
+          name: people[0].name,
+          avatarPhoto: people[0].avatarPhoto ?? null,
+        });
+      }
+      for (const person of people.slice(1)) {
+        if (!person.name.trim()) continue;
+        const id = generateId();
+        await api.addMember(groupId, {
+          id,
+          name: person.name,
+          avatarColor: colorFromString(id),
+          avatarPhoto: person.avatarPhoto,
+        });
+      }
+
+      set({ groups: await api.listGroups() });
+      await get().selectGroup(groupId);
+      return groupId;
+    },
+
+    /* ------------------------------------------------------------ people -- */
+
+    addPerson: (name, avatarPhoto) => {
+      const groupId = requireGroup();
+      const id = generateId();
+      const person: Person = {
+        id,
+        name: name.trim(),
+        avatarPhoto,
+        avatarColor: colorFromString(id),
+        createdAt: now(),
+        userId: null,
+        role: 'member',
+      };
+      optimistic(
+        () => set((s) => ({ people: [...s.people, person] })),
+        () => api.addMember(groupId, { id, name: person.name, avatarColor: person.avatarColor, avatarPhoto }),
+        `add ${person.name}`,
+      );
+      return id;
+    },
+
+    updatePerson: (id, updates) => {
+      optimistic(
+        () =>
+          set((s) => ({
+            people: s.people.map((p) =>
+              p.id === id
+                ? {
+                    ...p,
+                    ...(updates.name !== undefined ? { name: updates.name.trim() } : {}),
+                    ...('avatarPhoto' in updates ? { avatarPhoto: updates.avatarPhoto } : {}),
+                  }
+                : p,
+            ),
+          })),
+        () =>
+          api.updateMember(id, {
+            ...(updates.name !== undefined ? { name: updates.name } : {}),
+            ...('avatarPhoto' in updates ? { avatarPhoto: updates.avatarPhoto ?? null } : {}),
+          }),
+        'save that change',
+      );
+    },
+
+    /**
+     * Someone with history is archived, never deleted: their id is still
+     * referenced by every expense they were part of, and the database refuses
+     * to orphan those rows. Someone with no history is removed outright.
+     */
+    removePerson: (id) => {
+      const state = get();
+      if (state.people.filter((p) => !p.archived).length <= 1) return;
+
+      const hasHistory =
+        state.expenses.some((e) => e.paidBy === id || e.participants.some((p) => p.personId === id)) ||
+        state.settlements.some((s) => s.from === id || s.to === id) ||
+        state.recurringExpenses.some(
+          (r) => r.paidBy === id || r.participants.some((p) => p.personId === id),
+        );
+
+      if (hasHistory) {
+        optimistic(
+          () =>
+            set((s) => ({
+              people: s.people.map((p) => (p.id === id ? { ...p, archived: true } : p)),
+              recurringExpenses: s.recurringExpenses.map((r) =>
+                r.paidBy === id || r.participants.some((p) => p.personId === id)
+                  ? { ...r, active: false }
+                  : r,
+              ),
+            })),
+          async () => {
+            await api.updateMember(id, { archived: true });
+            const affected = get().recurringExpenses.filter(
+              (r) => r.paidBy === id || r.participants.some((p) => p.personId === id),
+            );
+            for (const r of affected) await api.saveRecurring(requireGroup(), { ...r, active: false });
+          },
+          'remove that person',
+        );
+      } else {
+        optimistic(
+          () => set((s) => ({ people: s.people.filter((p) => p.id !== id) })),
+          () => api.deleteMember(id),
+          'remove that person',
+        );
+      }
+    },
+
+    /* ---------------------------------------------------------- expenses -- */
+
+    addExpense: (input) => {
+      const groupId = requireGroup();
+      const expense = api.buildExpenseRecord(input);
+      optimistic(
+        () => set((s) => ({ expenses: [...s.expenses, expense] })),
+        () => api.saveExpense(groupId, expense),
+        'save that expense',
+      );
+      return expense.id;
+    },
+
+    updateExpense: (id, input) => {
+      const groupId = requireGroup();
+      const existing = get().expenses.find((e) => e.id === id);
+      const expense = api.buildExpenseRecord(input, existing);
+      optimistic(
+        () => set((s) => ({ expenses: s.expenses.map((e) => (e.id === id ? expense : e)) })),
+        () => api.saveExpense(groupId, expense),
+        'save that expense',
+      );
+    },
+
+    deleteExpense: (id) => {
+      optimistic(
+        () => set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) })),
+        () => api.deleteExpense(id),
+        'delete that expense',
+      );
+    },
+
+    /* ------------------------------------------------------- settlements -- */
+
+    addSettlement: (input) => {
+      const groupId = requireGroup();
+      const settlement = api.buildSettlementRecord(input);
+      optimistic(
+        () => set((s) => ({ settlements: [...s.settlements, settlement] })),
+        () => api.saveSettlement(groupId, settlement),
+        'record that settlement',
+      );
+      return settlement.id;
+    },
+
+    updateSettlement: (id, input) => {
+      const groupId = requireGroup();
+      const existing = get().settlements.find((s) => s.id === id);
+      const settlement = api.buildSettlementRecord(input, existing);
+      optimistic(
+        () => set((s) => ({ settlements: s.settlements.map((x) => (x.id === id ? settlement : x)) })),
+        () => api.saveSettlement(groupId, settlement),
+        'save that settlement',
+      );
+    },
+
+    deleteSettlement: (id) => {
+      optimistic(
+        () => set((s) => ({ settlements: s.settlements.filter((x) => x.id !== id) })),
+        () => api.deleteSettlement(id),
+        'delete that settlement',
+      );
+    },
+
+    /* --------------------------------------------------------- recurring -- */
+
+    addRecurringExpense: (input) => {
+      const groupId = requireGroup();
+      const template = buildRecurring(input);
+      optimistic(
+        () => set((s) => ({ recurringExpenses: [...s.recurringExpenses, template] })),
+        () => api.saveRecurring(groupId, template),
+        'save that repeating expense',
+      );
+      return template.id;
+    },
+
+    updateRecurringExpense: (id, input) => {
+      const groupId = requireGroup();
+      const existing = get().recurringExpenses.find((r) => r.id === id);
+      const template = buildRecurring(input, existing);
+      optimistic(
+        () =>
+          set((s) => ({
+            recurringExpenses: s.recurringExpenses.map((r) => (r.id === id ? template : r)),
+          })),
+        () => api.saveRecurring(groupId, template),
+        'save that repeating expense',
+      );
+    },
+
+    toggleRecurringActive: (id, active) => {
+      const groupId = requireGroup();
+      const template = get().recurringExpenses.find((r) => r.id === id);
+      if (!template) return;
+      optimistic(
+        () =>
+          set((s) => ({
+            recurringExpenses: s.recurringExpenses.map((r) => (r.id === id ? { ...r, active } : r)),
+          })),
+        () => api.saveRecurring(groupId, { ...template, active }),
+        active ? 'resume that template' : 'pause that template',
+      );
+    },
+
+    deleteRecurringExpense: (id) => {
+      optimistic(
+        () => set((s) => ({ recurringExpenses: s.recurringExpenses.filter((r) => r.id !== id) })),
+        () => api.deleteRecurring(id),
+        'delete that repeating expense',
+      );
+    },
+
+    runDueRecurringCheck: () => {
+      const state = get();
+      if (!state.group || !state.groupId) return 0;
+
+      const results = generateDueRecurringExpenses(state.recurringExpenses, todayString());
+      const ids = Object.keys(results);
+      if (ids.length === 0) return 0;
+
+      const groupId = state.groupId;
+      const created: Expense[] = [];
+      for (const id of ids) {
+        for (const input of results[id].expenses) created.push(api.buildExpenseRecord(input));
+      }
+
+      const updatedTemplates = state.recurringExpenses.map((r) => {
+        const generated = results[r.id];
+        if (!generated) return r;
+        return { ...r, nextDueDate: generated.nextDueDate, active: generated.active, updatedAt: now() };
+      });
+
+      optimistic(
+        () =>
+          set({
+            expenses: created.length ? [...state.expenses, ...created] : state.expenses,
+            recurringExpenses: updatedTemplates,
+          }),
+        async () => {
+          for (const expense of created) await api.saveExpense(groupId, expense);
+          for (const id of ids) {
+            const template = updatedTemplates.find((r) => r.id === id);
+            if (template) await api.saveRecurring(groupId, template);
+          }
+        },
+        'add the due repeating expenses',
+      );
+
+      return created.length;
+    },
+
+    /* -------------------------------------------------------- categories -- */
+
+    addCustomCategory: (label, icon) => {
+      const groupId = requireGroup();
+      const id = categoryIdFromLabel(
+        label,
+        get().categories.map((c) => c.id),
+      );
+      const category: Category = { id, label: label.trim(), icon, isCustom: true };
+      optimistic(
+        () => set((s) => ({ categories: [...s.categories, category] })),
+        () => api.addCategory(groupId, category),
+        'add that category',
+      );
+    },
+
+    removeCustomCategory: (id) => {
+      if (isDefaultCategory(id)) return;
+      const groupId = requireGroup();
+      const affected = get().expenses.filter((e) => e.category === id);
+      optimistic(
+        () =>
+          set((s) => ({
+            categories: s.categories.filter((c) => c.id !== id),
+            expenses: s.expenses.map((e) => (e.category === id ? { ...e, category: 'other' } : e)),
+            recurringExpenses: s.recurringExpenses.map((r) =>
+              r.category === id ? { ...r, category: 'other' } : r,
+            ),
+          })),
+        async () => {
+          // Expenses have to move off the category before it disappears.
+          for (const e of affected) await api.saveExpense(groupId, { ...e, category: 'other' });
+          for (const r of get().recurringExpenses.filter((x) => x.category === 'other')) {
+            if (r.category === 'other') await api.saveRecurring(groupId, r);
+          }
+          await api.removeCategory(groupId, id);
+        },
+        'remove that category',
+      );
+    },
+
+    /* ---------------------------------------------------------- settings -- */
+
+    updateGroupName: (name) => {
+      const groupId = requireGroup();
+      optimistic(
+        () =>
+          set((s) => ({
+            group: s.group ? { ...s.group, name: name.trim() } : s.group,
+            groups: s.groups.map((g) => (g.id === groupId ? { ...g, name: name.trim() } : g)),
+          })),
+        () => api.updateGroupFields(groupId, { name }),
+        'rename the group',
+      );
+    },
+
+    updateCurrency: (currencyCode) => {
+      const groupId = requireGroup();
+      optimistic(
+        () =>
+          set((s) => ({
+            group: s.group ? { ...s.group, currency: currencyCode } : s.group,
+            groups: s.groups.map((g) => (g.id === groupId ? { ...g, currency: currencyCode } : g)),
+          })),
+        () => api.updateGroupFields(groupId, { currency: currencyCode }),
+        'change the currency',
+      );
+    },
+
+    /** Adds the sample "Goa Trip" alongside whatever else you have, rather
+     *  than replacing it -- with multiple groups there is no reason to. */
+    loadDemoData: async () => {
+      const { buildSeedData } = await import('@/lib/seedData');
+      const groupId = await api.importLocalGroup(buildSeedData(), {});
+      set({ groups: await api.listGroups() });
+      await get().selectGroup(groupId);
+      return groupId;
+    },
+
+    deleteActiveGroup: async () => {
+      const groupId = get().groupId;
+      if (!groupId) return;
+      await api.deleteGroup(groupId);
+      localStorage.removeItem(ACTIVE_GROUP_KEY);
+      set({ ...emptyState, groupId: null });
+      await get().bootstrap();
+    },
+  };
+});

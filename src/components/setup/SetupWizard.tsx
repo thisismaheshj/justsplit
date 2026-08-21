@@ -27,7 +27,7 @@ function makeDraft(): DraftPerson {
 
 export function SetupWizard() {
   const navigate = useNavigate();
-  const initializeGroup = useGroupStore((s) => s.initializeGroup);
+  const createGroup = useGroupStore((s) => s.createGroup);
   const existingGroup = useGroupStore((s) => s.group);
 
   const [step, setStep] = useState(0);
@@ -53,12 +53,11 @@ export function SetupWizard() {
     return groupName.trim().length > 0 && currency.length === 3;
   }, [step, count, people, groupName, currency]);
 
-  const finish = () => {
+  const finish = async () => {
     if (!stepValid || saving) return;
     setSaving(true);
-    // Brief committed state for tactile feedback, then commit and route.
-    window.setTimeout(() => {
-      initializeGroup(
+    try {
+      await createGroup(
         groupName,
         currency,
         people.map((p) => ({ name: p.name, avatarPhoto: p.avatarPhoto })),
@@ -67,7 +66,12 @@ export function SetupWizard() {
         description: 'Add your first expense to get started.',
       });
       navigate('/home', { replace: true });
-    }, 220);
+    } catch (error) {
+      setSaving(false);
+      toast.error('Could not create that group', {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
   };
 
   return (
@@ -180,7 +184,7 @@ export function SetupWizard() {
             <ArrowRight aria-hidden />
           </Button>
         ) : (
-          <Button disabled={!stepValid} loading={saving} onClick={finish}>
+          <Button disabled={!stepValid} loading={saving} onClick={() => void finish()}>
             <Check aria-hidden />
             Create group
           </Button>

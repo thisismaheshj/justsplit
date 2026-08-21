@@ -26,66 +26,159 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
+      expense_participants: {
+        Row: { amount_owed: number; expense_id: string; input_value: number | null; member_id: string; position: number }
+        Insert: { amount_owed: number; expense_id: string; input_value?: number | null; member_id: string; position: number }
+        Update: { amount_owed?: number; expense_id?: string; input_value?: number | null; member_id?: string; position?: number }
+        Relationships: [
+          {
+            foreignKeyName: "expense_participants_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
         Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          updated_at: string
+          amount: number; category: string; created_at: string; date: string; description: string
+          group_id: string; id: string; note: string | null; paid_by: string
+          recurring_expense_id: string | null; split_method: string; updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          id: string
-          name?: string
-          updated_at?: string
+          amount: number; category?: string; created_at?: string; date: string; description: string
+          group_id: string; id?: string; note?: string | null; paid_by: string
+          recurring_expense_id?: string | null; split_method: string; updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          updated_at?: string
+          amount?: number; category?: string; created_at?: string; date?: string; description?: string
+          group_id?: string; id?: string; note?: string | null; paid_by?: string
+          recurring_expense_id?: string | null; split_method?: string; updated_at?: string
+        }
+        Relationships: []
+      }
+      group_categories: {
+        Row: { group_id: string; icon: string; id: string; label: string }
+        Insert: { group_id: string; icon: string; id: string; label: string }
+        Update: { group_id?: string; icon?: string; id?: string; label?: string }
+        Relationships: []
+      }
+      group_members: {
+        Row: {
+          archived: boolean; avatar_color: string; avatar_photo: string | null; created_at: string
+          group_id: string; id: string; joined_at: string; name: string; role: string
+          updated_at: string; user_id: string | null
+        }
+        Insert: {
+          archived?: boolean; avatar_color?: string; avatar_photo?: string | null; created_at?: string
+          group_id: string; id?: string; joined_at?: string; name: string; role?: string
+          updated_at?: string; user_id?: string | null
+        }
+        Update: {
+          archived?: boolean; avatar_color?: string; avatar_photo?: string | null; created_at?: string
+          group_id?: string; id?: string; joined_at?: string; name?: string; role?: string
+          updated_at?: string; user_id?: string | null
+        }
+        Relationships: []
+      }
+      groups: {
+        Row: {
+          created_at: string; created_by: string; currency: string; description: string | null
+          id: string; name: string; updated_at: string
+        }
+        Insert: {
+          created_at?: string; created_by: string; currency?: string; description?: string | null
+          id?: string; name: string; updated_at?: string
+        }
+        Update: {
+          created_at?: string; created_by?: string; currency?: string; description?: string | null
+          id?: string; name?: string; updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: { avatar_url: string | null; created_at: string; email: string | null; id: string; name: string; updated_at: string }
+        Insert: { avatar_url?: string | null; created_at?: string; email?: string | null; id: string; name?: string; updated_at?: string }
+        Update: { avatar_url?: string | null; created_at?: string; email?: string | null; id?: string; name?: string; updated_at?: string }
+        Relationships: []
+      }
+      recurring_expenses: {
+        Row: {
+          active: boolean; amount: number; category: string; created_at: string; description: string
+          end_date: string | null; frequency: string; group_id: string; id: string
+          next_due_date: string; note: string | null; paid_by: string; split_method: string
+          start_date: string; updated_at: string
+        }
+        Insert: {
+          active?: boolean; amount: number; category?: string; created_at?: string; description: string
+          end_date?: string | null; frequency: string; group_id: string; id?: string
+          next_due_date: string; note?: string | null; paid_by: string; split_method: string
+          start_date: string; updated_at?: string
+        }
+        Update: {
+          active?: boolean; amount?: number; category?: string; created_at?: string; description?: string
+          end_date?: string | null; frequency?: string; group_id?: string; id?: string
+          next_due_date?: string; note?: string | null; paid_by?: string; split_method?: string
+          start_date?: string; updated_at?: string
+        }
+        Relationships: []
+      }
+      recurring_participants: {
+        Row: { amount_owed: number; input_value: number | null; member_id: string; position: number; recurring_id: string }
+        Insert: { amount_owed: number; input_value?: number | null; member_id: string; position: number; recurring_id: string }
+        Update: { amount_owed?: number; input_value?: number | null; member_id?: string; position?: number; recurring_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_participants_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "group_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_participants_recurring_id_fkey"
+            columns: ["recurring_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlements: {
+        Row: {
+          amount: number; created_at: string; date: string; from_member: string; group_id: string
+          id: string; note: string | null; to_member: string; updated_at: string
+        }
+        Insert: {
+          amount: number; created_at?: string; date: string; from_member: string; group_id: string
+          id?: string; note?: string | null; to_member: string; updated_at?: string
+        }
+        Update: {
+          amount?: number; created_at?: string; date?: string; from_member?: string; group_id?: string
+          id?: string; note?: string | null; to_member?: string; updated_at?: string
         }
         Relationships: []
       }
       user_recovery: {
         Row: {
-          answer_1_hash: string
-          answer_2_hash: string
-          created_at: string
-          failed_attempts: number
-          locked_until: string | null
-          question_1: string
-          question_2: string
-          updated_at: string
-          user_id: string
+          answer_1_hash: string; answer_2_hash: string; created_at: string; failed_attempts: number
+          locked_until: string | null; question_1: string; question_2: string; updated_at: string; user_id: string
         }
         Insert: {
-          answer_1_hash: string
-          answer_2_hash: string
-          created_at?: string
-          failed_attempts?: number
-          locked_until?: string | null
-          question_1: string
-          question_2: string
-          updated_at?: string
-          user_id: string
+          answer_1_hash: string; answer_2_hash: string; created_at?: string; failed_attempts?: number
+          locked_until?: string | null; question_1: string; question_2: string; updated_at?: string; user_id: string
         }
         Update: {
-          answer_1_hash?: string
-          answer_2_hash?: string
-          created_at?: string
-          failed_attempts?: number
-          locked_until?: string | null
-          question_1?: string
-          question_2?: string
-          updated_at?: string
-          user_id?: string
+          answer_1_hash?: string; answer_2_hash?: string; created_at?: string; failed_attempts?: number
+          locked_until?: string | null; question_1?: string; question_2?: string; updated_at?: string; user_id?: string
         }
         Relationships: []
       }
@@ -94,22 +187,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_group: { Args: { p_currency: string; p_name: string; p_owner_name?: string }; Returns: string }
+      is_group_member: { Args: { p_group_id: string }; Returns: boolean }
       normalise_recovery_answer: { Args: { p_answer: string }; Returns: string }
       recovery_questions_for_email: {
         Args: { p_email: string }
-        Returns: {
-          question_1: string
-          question_2: string
-        }[]
+        Returns: { question_1: string; question_2: string }[]
       }
       revoke_all_sessions: { Args: { p_user_id: string }; Returns: undefined }
-      set_recovery_questions: {
+      save_expense: {
         Args: {
-          p_answer_1: string
-          p_answer_2: string
-          p_question_1: string
-          p_question_2: string
+          p_amount: number; p_category: string; p_date: string; p_description: string
+          p_expense_id?: string; p_group_id: string; p_note?: string; p_paid_by: string
+          p_participants: Json; p_recurring_expense_id?: string; p_split_method: string
         }
+        Returns: string
+      }
+      save_recurring_expense: {
+        Args: {
+          p_active?: boolean; p_amount: number; p_category: string; p_description: string
+          p_end_date?: string; p_frequency: string; p_group_id: string; p_next_due_date: string
+          p_note?: string; p_paid_by: string; p_participants: Json; p_recurring_id?: string
+          p_split_method: string; p_start_date: string
+        }
+        Returns: string
+      }
+      set_recovery_questions: {
+        Args: { p_answer_1: string; p_answer_2: string; p_question_1: string; p_question_2: string }
         Returns: undefined
       }
       verify_recovery_answers: {

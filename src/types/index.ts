@@ -31,6 +31,10 @@ export interface Person {
   createdAt: string;
   /** soft-delete flag */
   archived?: boolean;
+  /** Set when this member is a real account; null for a "ghost" member. */
+  userId?: string | null;
+  /** 'owner' for the person who created the group. */
+  role?: 'owner' | 'member';
 }
 
 export interface ParticipantShare {

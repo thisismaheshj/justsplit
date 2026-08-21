@@ -64,6 +64,11 @@ export function makeSettlement(
 /** Replace the whole store with a known state for one test. */
 export function seedStore(state: Partial<AppState>) {
   useGroupStore.setState({
+    // groupId is what the store's write path keys off; without it every
+    // action throws "No group selected".
+    groupId: 'g1',
+    groups: [{ id: 'g1', name: 'Test Trip', currency: 'INR', createdAt: '2026-01-01T00:00:00.000Z' }],
+    loading: false,
     group: {
       id: 'g1',
       name: 'Test Trip',

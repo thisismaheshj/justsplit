@@ -1,10 +1,11 @@
+import { useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from '@/components/ui/toaster';
 import { useGroupStore } from '@/store/useGroupStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { HydrationGate } from '@/components/layout/HydrationGate';
+import { BootSkeleton } from '@/components/layout/HydrationGate';
 import { SupabaseNotice } from '@/components/auth/SupabaseNotice';
 
 import LoginPage from '@/pages/LoginPage';
@@ -52,24 +53,49 @@ function AuthBootSkeleton() {
   return <div className="min-h-dvh bg-background" aria-busy="true" aria-live="polite" />;
 }
 
-/** Any route but /setup requires an initialised group. */
+/**
+ * Loads the signed-in user's groups once, then holds the rest of the app back
+ * until that first read settles. Without the wait, a returning user is bounced
+ * to /setup for a frame because "no group yet" and "not loaded yet" look
+ * identical -- the same trap the old localStorage gate solved.
+ */
+function GroupGate() {
+  const userId = useAuthStore((s) => s.user?.id);
+  const hydrated = useGroupStore((s) => s.hydrated);
+  const bootstrap = useGroupStore((s) => s.bootstrap);
+  const clearLocal = useGroupStore((s) => s.clearLocal);
+
+  useEffect(() => {
+    if (!userId) {
+      // Signing out must not leave the previous account's ledger in memory.
+      clearLocal();
+      return;
+    }
+    void bootstrap();
+  }, [userId, bootstrap, clearLocal]);
+
+  if (!hydrated) return <BootSkeleton />;
+  return <Outlet />;
+}
+
+/** Any route but /setup requires a group to be open. */
 function RequireGroup() {
-  const group = useGroupStore((s) => s.group);
-  if (!group) return <Navigate to="/setup" replace />;
+  const groupId = useGroupStore((s) => s.groupId);
+  if (!groupId) return <Navigate to="/setup" replace />;
   return <Outlet />;
 }
 
 /** The index route decides between first-run setup and the dashboard. */
 function IndexRoute() {
-  const group = useGroupStore((s) => s.group);
-  return <Navigate to={group ? '/home' : '/setup'} replace />;
+  const groupId = useGroupStore((s) => s.groupId);
+  return <Navigate to={groupId ? '/home' : '/setup'} replace />;
 }
 
 export default function App() {
   if (!isSupabaseConfigured) return <SupabaseNotice />;
 
   return (
-    <HydrationGate>
+    <>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
@@ -88,11 +114,13 @@ export default function App() {
 
         {/* Authenticated */}
         <Route element={<RequireAuth />}>
-          <Route path="/" element={<IndexRoute />} />
           <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
-          <Route path="/setup" element={<SetupPage />} />
 
-          <Route element={<RequireGroup />}>
+          <Route element={<GroupGate />}>
+            <Route path="/" element={<IndexRoute />} />
+            <Route path="/setup" element={<SetupPage />} />
+
+            <Route element={<RequireGroup />}>
             <Route element={<AppShell />}>
               <Route path="/home" element={<HomePage />} />
               <Route path="/people" element={<PeoplePage />} />
@@ -104,6 +132,7 @@ export default function App() {
               <Route path="/settle-up" element={<SettleUpPage />} />
               <Route path="/recurring" element={<RecurringPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              </Route>
             </Route>
           </Route>
         </Route>
@@ -112,6 +141,6 @@ export default function App() {
       </Routes>
 
       <Toaster />
-    </HydrationGate>
+    </>
   );
 }

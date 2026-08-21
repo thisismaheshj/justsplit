@@ -26,7 +26,7 @@ export function HydrationGate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function BootSkeleton() {
+export function BootSkeleton() {
   return (
     <div className="min-h-dvh bg-background" aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading your group…</span>

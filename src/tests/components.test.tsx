@@ -1,4 +1,33 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+
+/**
+ * The store writes through to Postgres and rolls the optimistic update back if
+ * the write fails. There is no Supabase in a unit test, so the network calls
+ * are stubbed while the record-building helpers stay real -- those are what
+ * turn form input into a split, and mocking them would test nothing.
+ */
+vi.mock('@/lib/groupsApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/groupsApi')>();
+  return {
+    ...actual,
+    listGroups: vi.fn(async () => []),
+    loadGroup: vi.fn(),
+    createGroup: vi.fn(async () => 'g1'),
+    updateGroupFields: vi.fn(async () => {}),
+    deleteGroup: vi.fn(async () => {}),
+    addMember: vi.fn(async () => {}),
+    updateMember: vi.fn(async () => {}),
+    deleteMember: vi.fn(async () => {}),
+    saveExpense: vi.fn(async () => 'e1'),
+    deleteExpense: vi.fn(async () => {}),
+    saveSettlement: vi.fn(async () => {}),
+    deleteSettlement: vi.fn(async () => {}),
+    saveRecurring: vi.fn(async () => 'r1'),
+    deleteRecurring: vi.fn(async () => {}),
+    addCategory: vi.fn(async () => {}),
+    removeCategory: vi.fn(async () => {}),
+  };
+});
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
