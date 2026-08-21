@@ -267,13 +267,19 @@ export async function addMember(
 
 export async function updateMember(
   memberId: string,
-  patch: { name?: string; avatarPhoto?: string | null; archived?: boolean },
+  patch: {
+    name?: string;
+    avatarPhoto?: string | null;
+    avatarColor?: string;
+    archived?: boolean;
+  },
 ): Promise<void> {
   const { error } = await db()
     .from('group_members')
     .update({
       ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
       ...('avatarPhoto' in patch ? { avatar_photo: patch.avatarPhoto ?? null } : {}),
+      ...(patch.avatarColor !== undefined ? { avatar_color: patch.avatarColor } : {}),
       ...(patch.archived !== undefined ? { archived: patch.archived } : {}),
     })
     .eq('id', memberId);
@@ -416,6 +422,9 @@ export async function importLocalGroup(
       await updateMember(ownerSeatId, {
         name: person.name,
         avatarPhoto: person.avatarPhoto ?? null,
+        // Carry the claimed person's colour across, or the seeded seat keeps
+        // one that has nothing to do with who it now represents.
+        avatarColor: person.avatarColor,
         archived: person.archived ?? false,
       });
       continue;

@@ -9,7 +9,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
         type={type}
         className={cn(
           'flex h-11 w-full rounded-lg border border-input bg-card px-3 text-label text-foreground',
-          'placeholder:text-muted-foreground/70',
+          'placeholder:text-muted-subtle',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'aria-[invalid=true]:border-negative',
           className,
@@ -29,7 +29,7 @@ export const Textarea = React.forwardRef<
       ref={ref}
       className={cn(
         'flex min-h-20 w-full rounded-lg border border-input bg-card p-3 text-label text-foreground',
-        'placeholder:text-muted-foreground/70 disabled:cursor-not-allowed disabled:opacity-50',
+        'placeholder:text-muted-subtle disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}

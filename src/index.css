@@ -4,27 +4,45 @@
 
 @layer base {
   :root {
-    /* Neutral base */
-    --background: 210 20% 98%;
-    --foreground: 222 33% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 33% 12%;
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 45%;
-    --border: 214 20% 90%;
-    --input: 214 20% 88%;
-    --ring: 243 75% 59%;
+    /* ------------------------------------------------------------------
+     * Section 6 palette, written as HSL triplets rather than hex.
+     * Tailwind composes these as hsl(var(--token) / <alpha>) for every
+     * opacity modifier in the app (bg-primary/90, bg-muted/40, ...). A hex
+     * value here would produce hsl(#A13D35 / 0.9), which is invalid CSS, and
+     * every one of those utilities would silently stop painting.
+     * Hex equivalents are noted so the spec stays checkable.
+     * ------------------------------------------------------------------ */
 
-    /* Semantic colors — exactly three: primary, positive, negative */
-    --primary: 243 75% 59%;
+    /* Neutral base — warm stone rather than cool grey */
+    --background: 60 9% 98%;        /* #FAFAF9 */
+    --foreground: 240 6% 10%;       /* #18181B  charcoal, not pure black */
+    --card: 0 0% 100%;              /* #FFFFFF */
+    --card-foreground: 240 6% 10%;
+    --muted: 60 5% 96%;             /* #F5F5F4  hover fills, inert chips */
+    --muted-foreground: 0 0% 42%;   /* #6B6B6B  secondary text */
+    --muted-subtle: 0 0% 63%;       /* #A1A1A1  placeholder, disabled */
+    --border: 20 6% 90%;            /* #E7E5E4  1px hairlines */
+    --border-strong: 24 6% 83%;     /* #D6D3D1  dividers needing contrast */
+    --input: 24 6% 83%;
+    --ring: 4 50% 42%;
+
+    /* Three semantic colours, and nothing else */
+    --primary: 4 50% 42%;           /* #A13D35  muted crimson */
+    --primary-hover: 4 52% 36%;     /* #8A332C */
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 243 80% 96%;
-    --positive: 158 74% 27%;
-    --positive-soft: 152 60% 95%;
-    --negative: 0 72% 45%;
-    --negative-soft: 0 80% 96%;
+    --primary-soft: 3 69% 95%;      /* #FBEAE9 */
+    --positive: 144 33% 37%;        /* #3F7D58 */
+    --positive-soft: 144 30% 97%;  /* lifted from 95%: the Settlement badge
+                                      measured 4.45:1 against #3F7D58, just
+                                      under AA. Section 6 fixes the success
+                                      colour, so the tint gives way instead. */
+    --negative: 3 51% 46%;          /* #B3403A  same family as the accent,
+                                       a touch brighter so the two are
+                                       still separable side by side */
+    --negative-soft: 6 65% 95%;
 
-    --radius: 0.75rem;
+    /* Small and consistent: sharp, not bubbly. */
+    --radius: 6px;
   }
 
   * {
@@ -37,7 +55,6 @@
 
   body {
     @apply bg-background text-foreground font-sans text-body antialiased;
-    font-feature-settings: 'cv11', 'ss01';
     font-variant-numeric: tabular-nums;
   }
 
@@ -48,8 +65,13 @@
 }
 
 @layer utilities {
+  /* Section 6: numeric and currency values in mono. Every money figure in
+     the app already carries this class, so it is the single place to change. */
   .tabular {
+    font-family: 'Geist Mono', ui-monospace, 'JetBrains Mono', 'SFMono-Regular',
+      Menlo, monospace;
     font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);

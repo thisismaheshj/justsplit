@@ -222,6 +222,7 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
         await api.updateMember(seat.id, {
           name: people[0].name,
           avatarPhoto: people[0].avatarPhoto ?? null,
+          avatarColor: colorFromString(seat.id),
         });
       }
       for (const person of people.slice(1)) {
@@ -555,7 +556,12 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
      *  than replacing it -- with multiple groups there is no reason to. */
     loadDemoData: async () => {
       const { buildSeedData } = await import('@/lib/seedData');
-      const groupId = await api.importLocalGroup(buildSeedData(), {});
+      const seed = buildSeedData();
+      // Claim the first demo person rather than joining as a fifth, empty
+      // member: a demo whose own balance is always zero demonstrates nothing.
+      const groupId = await api.importLocalGroup(seed, {
+        claimPersonId: seed.people[0]?.id,
+      });
       set({ groups: await api.listGroups() });
       await get().selectGroup(groupId);
       return groupId;

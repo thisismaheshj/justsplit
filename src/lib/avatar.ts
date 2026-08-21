@@ -1,18 +1,18 @@
 /** Deterministic avatar helpers — same input always yields the same look. */
 
 const PALETTE = [
-  '#4f46e5', // indigo
-  '#0891b2', // cyan
-  '#059669', // emerald
-  '#c2410c', // orange
-  '#9333ea', // purple
-  '#be123c', // rose
-  '#0369a1', // sky
-  '#65a30d', // lime
-  '#7c3aed', // violet
-  '#b45309', // amber
-  '#0f766e', // teal
-  '#a21caf', // fuchsia
+  '#7A4A45', // clay
+  '#4A5A6B', // slate blue
+  '#4F6B57', // moss
+  '#6B5B45', // umber
+  '#5C5470', // heather
+  '#7A4F5C', // mulberry
+  '#43616B', // teal ink
+  '#65674A', // olive
+  '#5A4E63', // plum
+  '#7A6248', // sand
+  '#456B66', // pine
+  '#6B4A5F', // damson
 ];
 
 /** "Priya Sharma" -> "PS"; "Rahul" -> "RA"; "" -> "?" */
