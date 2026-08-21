@@ -11,6 +11,7 @@ import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
+import SetupRecoveryPage from '@/pages/SetupRecoveryPage';
 import SetupPage from '@/pages/SetupPage';
 import HomePage from '@/pages/HomePage';
 import PeoplePage from '@/pages/PeoplePage';
@@ -88,6 +89,7 @@ export default function App() {
         {/* Authenticated */}
         <Route element={<RequireAuth />}>
           <Route path="/" element={<IndexRoute />} />
+          <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
           <Route path="/setup" element={<SetupPage />} />
 
           <Route element={<RequireGroup />}>

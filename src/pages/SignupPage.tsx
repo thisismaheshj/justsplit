@@ -43,8 +43,9 @@ export default function SignupPage() {
     setBusy(true);
     const ok = await signUpWithEmail({ name, email, password });
     setBusy(false);
-    // Phase 3 will route to security-question setup here instead.
-    if (ok) navigate('/', { replace: true });
+    // Straight into recovery setup: these answers are the only way back into an
+    // email/password account, and asking later means most people never do it.
+    if (ok) navigate('/setup-recovery', { replace: true });
   }
 
   return (
