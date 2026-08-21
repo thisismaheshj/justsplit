@@ -11,6 +11,7 @@ timestamp versions in `supabase_migrations.schema_migrations`. The mapping:
 | `0003_password_recovery_questions.sql` | `20260821172359` | `password_recovery_questions` |
 | `0004_password_recovery_functions.sql` | `20260821172437` | `password_recovery_functions` |
 | `0005_fix_recovery_column_grants.sql` | `20260821172556` | `fix_recovery_column_grants` |
+| `0006_fix_decoy_question_collision.sql` | `20260821174723` | `fix_decoy_question_collision` |
 
 Deliberately kept as applied rather than squashed: `0003` ships a column-level
 `REVOKE` that turns out to be a no-op against a table-wide grant, and `0005` is
