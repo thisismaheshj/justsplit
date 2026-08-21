@@ -24,21 +24,32 @@
     --border: 20 6% 90%;            /* #E7E5E4  1px hairlines */
     --border-strong: 24 6% 83%;     /* #D6D3D1  dividers needing contrast */
     --input: 24 6% 83%;
-    --ring: 4 50% 42%;
+    --ring: 220.7 100% 50%;
 
-    /* Three semantic colours, and nothing else */
-    --primary: 4 50% 42%;           /* #A13D35  muted crimson */
-    --primary-hover: 4 52% 36%;     /* #8A332C */
+    /* Three semantic colours, and nothing else.
+     * The accent is #0052FF and its shades. Hue is 220.7 rather than a round
+     * 221 so the base lands on that hex exactly instead of one step off in
+     * green. Measured against the surfaces it actually sits on:
+     *   white on accent        5.80:1
+     *   white on accent hover  7.78:1
+     *   accent text on bg      5.55:1
+     *   accent text on soft    5.13:1
+     */
+    --primary: 220.7 100% 50%;      /* #0052FF */
+    --primary-hover: 220.7 100% 41%;/* #0042D1  darker, not translucent */
     --primary-foreground: 0 0% 100%;
-    --primary-soft: 3 69% 95%;      /* #FBEAE9 */
+    --primary-soft: 220.7 100% 96%; /* #EBF1FF */
     --positive: 144 33% 37%;        /* #3F7D58 */
     --positive-soft: 144 30% 97%;  /* lifted from 95%: the Settlement badge
                                       measured 4.45:1 against #3F7D58, just
                                       under AA. Section 6 fixes the success
                                       colour, so the tint gives way instead. */
-    --negative: 3 51% 46%;          /* #B3403A  same family as the accent,
-                                       a touch brighter so the two are
-                                       still separable side by side */
+    --negative: 3 51% 46%;          /* #B3403A  kept from Section 6. It was
+                                       chosen to sit in the accent's family
+                                       when the accent was crimson; against a
+                                       blue accent it now reads as
+                                       unambiguously an error, which is
+                                       better rather than worse. */
     --negative-soft: 6 65% 95%;
 
     /* Small and consistent: sharp, not bubbly. */
