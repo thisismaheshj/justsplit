@@ -42,6 +42,18 @@ jobs:
         run: npm run build
         env:
           GITHUB_PAGES: 'true'
+          # Both are public values baked into the bundle; row-level security is
+          # what protects the data, not secrecy of the anon key. Stored as repo
+          # secrets only to keep the project URL out of the source.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Add SPA fallback
+        # GitHub Pages serves static files only, so a hard load of a client
+        # route like /auth/callback would 404. Pages serves 404.html for any
+        # unmatched path, so making it a copy of index.html hands the URL to
+        # the router instead. Without this, Google OAuth cannot come back.
+        run: cp dist/index.html dist/404.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
