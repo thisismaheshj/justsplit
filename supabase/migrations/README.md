@@ -19,6 +19,7 @@ timestamp versions in `supabase_migrations.schema_migrations`. The mapping:
 | `0011_group_delete_unwinds_ledger.sql` | `20260821182156` | `group_delete_unwinds_ledger` |
 | `0012_pin_search_path_on_save_rpcs.sql` | `20260821182239` | `pin_search_path_on_save_rpcs` |
 | `0013_save_rpcs_accept_client_ids.sql` | `20260821183625` | `save_rpcs_accept_client_ids` |
+| `0014_dashboard_summary_rpcs.sql` | `20260821214922` | `dashboard_summary_rpcs` |
 
 Deliberately kept as applied rather than squashed: `0003` ships a column-level
 `REVOKE` that turns out to be a no-op against a table-wide grant, and `0005` is

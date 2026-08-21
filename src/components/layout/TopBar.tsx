@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const TITLES: Record<string, string> = {
+  '/dashboard': 'Overview',
   '/home': 'Home',
   '/expenses': 'Expenses',
   '/people': 'People',

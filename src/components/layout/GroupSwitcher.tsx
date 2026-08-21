@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronsUpDown, Plus, Wallet } from 'lucide-react';
+import { Check, ChevronsUpDown, LayoutGrid, Plus, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -67,6 +67,12 @@ export function GroupSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar' | '
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="min-w-64">
+        <DropdownMenuItem onSelect={() => navigate('/dashboard')}>
+          <LayoutGrid aria-hidden />
+          All groups overview
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+
         {groups.map((g) => {
           const active = g.id === groupId;
           return (

@@ -188,6 +188,36 @@ export type Database = {
     }
     Functions: {
       create_group: { Args: { p_currency: string; p_name: string; p_owner_name?: string }; Returns: string }
+      dashboard_activity: {
+        Args: { p_limit?: number }
+        Returns: {
+          entry_id: string
+          kind: string
+          group_id: string
+          group_name: string
+          currency: string
+          description: string | null
+          amount: number
+          entry_date: string
+          actor_name: string
+          other_name: string | null
+          category: string | null
+          created_at: string
+        }[]
+      }
+      dashboard_groups: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          group_id: string
+          name: string
+          currency: string
+          member_count: number
+          expense_count: number
+          total_spend: number
+          my_balance: number
+          last_activity: string | null
+        }[]
+      }
       is_group_member: { Args: { p_group_id: string }; Returns: boolean }
       normalise_recovery_answer: { Args: { p_answer: string }; Returns: string }
       recovery_questions_for_email: {

@@ -15,6 +15,7 @@ import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import SetupRecoveryPage from '@/pages/SetupRecoveryPage';
 import SetupPage from '@/pages/SetupPage';
 import NewGroupPage from '@/pages/NewGroupPage';
+import DashboardPage from '@/pages/DashboardPage';
 import HomePage from '@/pages/HomePage';
 import PeoplePage from '@/pages/PeoplePage';
 import PersonDetailPage from '@/pages/PersonDetailPage';
@@ -86,10 +87,10 @@ function RequireGroup() {
   return <Outlet />;
 }
 
-/** The index route decides between first-run setup and the dashboard. */
+/** First run goes to setup; everyone else lands on the cross-group dashboard. */
 function IndexRoute() {
-  const groupId = useGroupStore((s) => s.groupId);
-  return <Navigate to={groupId ? '/home' : '/setup'} replace />;
+  const groups = useGroupStore((s) => s.groups);
+  return <Navigate to={groups.length > 0 ? '/dashboard' : '/setup'} replace />;
 }
 
 export default function App() {
@@ -122,18 +123,22 @@ export default function App() {
             <Route path="/setup" element={<SetupPage />} />
             <Route path="/groups/new" element={<NewGroupPage />} />
 
-            <Route element={<RequireGroup />}>
             <Route element={<AppShell />}>
-              <Route path="/home" element={<HomePage />} />
-              <Route path="/people" element={<PeoplePage />} />
-              <Route path="/people/:personId" element={<PersonDetailPage />} />
-              <Route path="/expenses" element={<ExpensesPage />} />
-              <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
-              <Route path="/add-expense" element={<AddExpensePage />} />
-              <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
-              <Route path="/settle-up" element={<SettleUpPage />} />
-              <Route path="/recurring" element={<RecurringPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              {/* The dashboard spans every group, so it must not sit behind
+                  RequireGroup -- a brand-new account has no active group yet. */}
+              <Route path="/dashboard" element={<DashboardPage />} />
+
+              <Route element={<RequireGroup />}>
+                <Route path="/home" element={<HomePage />} />
+                <Route path="/people" element={<PeoplePage />} />
+                <Route path="/people/:personId" element={<PersonDetailPage />} />
+                <Route path="/expenses" element={<ExpensesPage />} />
+                <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
+                <Route path="/add-expense" element={<AddExpensePage />} />
+                <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
+                <Route path="/settle-up" element={<SettleUpPage />} />
+                <Route path="/recurring" element={<RecurringPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
               </Route>
             </Route>
           </Route>
