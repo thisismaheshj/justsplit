@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useGroupStore } from '@/store/useGroupStore';
+import { GroupSwitcher } from './GroupSwitcher';
 import { getCurrency } from '@/lib/currency';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -54,12 +55,15 @@ export function TopBar() {
 
       <div className="min-w-0 flex-1">
         <h1 className="truncate text-section font-semibold md:text-page">{title}</h1>
-        <p className="truncate text-caption text-muted-foreground md:hidden">
-          {group?.name}
-        </p>
       </div>
 
-      <Badge variant="outline" className="shrink-0">
+      {/* The sidebar carries the switcher from md up; below that it lives here,
+          so changing group never costs a trip through Settings. */}
+      <div className="md:hidden">
+        <GroupSwitcher variant="compact" />
+      </div>
+
+      <Badge variant="outline" className="hidden shrink-0 md:inline-flex">
         {currency.symbol} {currency.code}
       </Badge>
     </header>

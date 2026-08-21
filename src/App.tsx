@@ -14,6 +14,7 @@ import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import SetupRecoveryPage from '@/pages/SetupRecoveryPage';
 import SetupPage from '@/pages/SetupPage';
+import NewGroupPage from '@/pages/NewGroupPage';
 import HomePage from '@/pages/HomePage';
 import PeoplePage from '@/pages/PeoplePage';
 import PersonDetailPage from '@/pages/PersonDetailPage';
@@ -119,6 +120,7 @@ export default function App() {
           <Route element={<GroupGate />}>
             <Route path="/" element={<IndexRoute />} />
             <Route path="/setup" element={<SetupPage />} />
+            <Route path="/groups/new" element={<NewGroupPage />} />
 
             <Route element={<RequireGroup />}>
             <Route element={<AppShell />}>
