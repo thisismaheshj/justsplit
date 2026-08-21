@@ -11,6 +11,8 @@
 | **Google sign-in** | ⛔ needs you — §4 below |
 | **Redirect URLs** | ⛔ needs you — §4 below |
 | **Email confirmation setting** | ⛔ your call — §5 below |
+| Phase 3 recovery schema (migrations 0003, 0004) | ✅ done |
+| `password-recovery` edge function deployed | ✅ done |
 
 Everything reachable through the management API is finished. What remains lives
 in the Supabase and Google dashboards behind your login.
@@ -97,3 +99,37 @@ client-side routes survive a hard refresh.
   configured" notice.
 - Creating an account adds a row in **Table Editor** → `profiles`.
 - Signing out and back in lands you on the app, not on `/login`.
+
+
+## 7. Password recovery (Phase 3)
+
+Reset works entirely in-app, with no email, per PRD 5.1 Option A.
+
+- Two security questions from a fixed bank, chosen in **Settings → Account**.
+- Answers are normalised (case and spacing ignored) and **bcrypt-hashed** by
+  Postgres. Neither the client nor the edge function ever sees a hash: the
+  answer columns are revoked from `anon` and `authenticated` at the column level.
+- Five wrong answers locks recovery for 15 minutes. The client cannot clear its
+  own lockout — it has no write access to the table at all; every write goes
+  through `set_recovery_questions()`.
+- A successful reset **revokes every existing session**, so a stolen laptop is
+  signed out too.
+- An account with no recovery record cannot be reset. This matters for
+  Google-only accounts: until you deliberately set questions, the only way in is
+  Google.
+
+### The trade-off, stated plainly
+
+Skipping email means there is no proof of inbox ownership. Anyone who knows your
+two answers can take the account. Pick answers that are not on your public
+profile — and prefer ones that are effectively passwords rather than facts, since
+a real answer to "what city were you born in?" is often a search away.
+
+### Redeploying the function
+
+```
+supabase functions deploy password-recovery
+```
+
+The service-role key it uses is injected by the platform as
+`SUPABASE_SERVICE_ROLE_KEY`; it is never checked in and never reaches the browser.

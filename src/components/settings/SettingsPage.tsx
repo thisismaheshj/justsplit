@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { CurrencySelector } from './CurrencySelector';
 import { CategoryManager } from './CategoryManager';
 import { DataResetSection } from './DataResetSection';
+import { AccountSection } from './AccountSection';
 
 import { useGroupStore } from '@/store/useGroupStore';
 import { selectActivePeople } from '@/store/selectors';
@@ -47,6 +48,10 @@ export function SettingsPageContent() {
 
   return (
     <div className="flex flex-col gap-8">
+      <Section title="Account">
+        <AccountSection />
+      </Section>
+
       <Section title="Group">
         <Card className="p-5">
           <Field id="settings-group-name" label="Group name" error={nameError}>
