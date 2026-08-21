@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { LogOut, ShieldCheck, ShieldAlert } from 'lucide-react';
 
 import { Avatar } from '@/components/ui/avatar';
+import { colorFromString } from '@/lib/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SecurityQuestionFields, validateQuestionPair, type QuestionPair, type QuestionField }
@@ -52,7 +53,16 @@ export function AccountSection() {
   return (
     <div className="flex flex-col gap-4">
       <Card className="flex items-center gap-3 p-5">
-        <Avatar name={profile?.name || 'You'} src={profile?.avatarUrl ?? undefined} />
+        <Avatar
+          size="lg"
+          person={{
+            name: profile?.name || 'You',
+            // Same deterministic colour scheme group members use, keyed on the
+            // account id so it stays stable across renames.
+            avatarColor: colorFromString(profile?.id ?? user?.id ?? 'you'),
+            avatarPhoto: profile?.avatarUrl ?? undefined,
+          }}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate text-label font-medium">{profile?.name || 'You'}</p>
           <p className="truncate text-caption text-muted-foreground">{profile?.email}</p>
