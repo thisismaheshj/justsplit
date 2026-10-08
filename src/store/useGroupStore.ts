@@ -62,13 +62,11 @@ export interface GroupStore extends AppState {
    */
   syncAccountSeat: (userId: string, profile: { name: string; avatarPhoto?: string }) => void;
 
-  createGroup: (
-    name: string,
-    currency: string,
-    people: { name: string; avatarPhoto?: string }[],
-  ) => Promise<string>;
+  /** Creates a group with you as owner and seats each chosen account in it. */
+  createGroup: (name: string, currency: string, accounts: api.AccountMatch[]) => Promise<string>;
+  /** Adds an existing account to the open group; it shows up on their dashboard. */
+  addAccount: (account: api.AccountMatch) => string;
 
-  addPerson: (name: string, avatarPhoto?: string, inviteEmail?: string) => string;
   updatePerson: (id: string, updates: Partial<Pick<Person, 'name' | 'avatarPhoto' | 'inviteEmail'>>) => void;
   removePerson: (id: string) => void;
 
@@ -260,28 +258,16 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
       if (id) await get().selectGroup(id);
     },
 
-    createGroup: async (name, currency, people) => {
-      const groupId = await api.createGroup(name, currency, people[0]?.name);
-
-      // create_group seeds a row for the signed-in user, so the first name in
-      // the list is already taken -- only the rest need adding.
-      const existing = await api.loadGroup(groupId);
-      const seat = existing.people[0];
-      if (seat && people[0]) {
-        await api.updateMember(seat.id, {
-          name: people[0].name,
-          avatarPhoto: people[0].avatarPhoto ?? null,
-          avatarColor: colorFromString(seat.id),
-        });
-      }
-      for (const person of people.slice(1)) {
-        if (!person.name.trim()) continue;
+    createGroup: async (name, currency, accounts) => {
+      // create_group seats you as owner; everyone else is an account you chose.
+      const groupId = await api.createGroup(name, currency);
+      for (const account of accounts) {
         const id = generateId();
-        await api.addMember(groupId, {
+        await api.addAccountMember(groupId, {
           id,
-          name: person.name,
+          userId: account.userId,
+          name: account.name,
           avatarColor: colorFromString(id),
-          avatarPhoto: person.avatarPhoto,
         });
       }
 
@@ -292,32 +278,30 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
 
     /* ------------------------------------------------------------ people -- */
 
-    addPerson: (name, avatarPhoto, inviteEmail) => {
+    addAccount: (account) => {
       const groupId = requireGroup();
       const id = generateId();
       const person: Person = {
         id,
-        name: name.trim(),
-        avatarPhoto,
+        name: account.name,
+        avatarPhoto: account.avatarUrl,
         avatarColor: colorFromString(id),
         createdAt: now(),
-        userId: null,
+        userId: account.userId,
         role: 'member',
-        inviteEmail: inviteEmail?.trim().toLowerCase() || undefined,
       };
       optimistic(
         () => set((s) => ({ people: [...s.people, person] })),
         () =>
           api
-            .addMember(groupId, {
-              id,
-              name: person.name,
-              avatarColor: person.avatarColor,
-              avatarPhoto,
-              inviteEmail: person.inviteEmail,
-            })
-            .then((link) => applyMemberLink(id, link), explainMemberError),
-        `add ${person.name}`,
+            .addAccountMember(groupId, { id, userId: account.userId, name: account.name, avatarColor: person.avatarColor })
+            .then((link) => applyMemberLink(id, link), (error: unknown) => {
+              if ((error as { code?: string })?.code === '23505') {
+                throw new Error(`${account.name} is already in this group.`);
+              }
+              explainMemberError(error);
+            }),
+        `add ${account.name}`,
       );
       return id;
     },

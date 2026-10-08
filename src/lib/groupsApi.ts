@@ -253,6 +253,51 @@ export async function deleteGroup(groupId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Someone with a finished account, as the people search shows them. */
+export interface AccountMatch {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  /** "r•••@gmail.com" -- enough to tell two Rahuls apart, never the address. */
+  emailHint?: string;
+}
+
+/** Accounts whose name contains the query (2+ characters), or whose email is it exactly. */
+export async function searchAccounts(query: string): Promise<AccountMatch[]> {
+  if (query.trim().length < 2) return [];
+  const { data, error } = await db().rpc('search_accounts', { p_query: query });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    userId: row.user_id,
+    name: row.name,
+    avatarUrl: row.avatar_url ?? undefined,
+    emailHint: row.email_hint ?? undefined,
+  }));
+}
+
+/**
+ * Seats an account in a group. The account's own name and photo are copied
+ * onto the seat by migration 0016, so the name sent here is only a fallback.
+ */
+export async function addAccountMember(
+  groupId: string,
+  member: { id: string; userId: string; name: string; avatarColor: string },
+): Promise<MemberLink> {
+  const { data, error } = await db()
+    .from('group_members')
+    .insert({
+      id: member.id,
+      group_id: groupId,
+      user_id: member.userId,
+      name: member.name.trim().slice(0, 40),
+      avatar_color: member.avatarColor,
+    })
+    .select('user_id, name, avatar_photo')
+    .single();
+  if (error) throw error;
+  return toMemberLink(data);
+}
+
 export async function addMember(
   groupId: string,
   member: { id: string; name: string; avatarColor: string; avatarPhoto?: string; inviteEmail?: string },

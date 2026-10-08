@@ -188,6 +188,10 @@ export type Database = {
     }
     Functions: {
       create_group: { Args: { p_currency: string; p_name: string; p_owner_name?: string }; Returns: string }
+      search_accounts: {
+        Args: { p_query: string }
+        Returns: { user_id: string; name: string; avatar_url: string | null; email_hint: string | null }[]
+      }
       dashboard_activity: {
         Args: { p_limit?: number }
         Returns: {

@@ -14,6 +14,7 @@
 | `password-recovery` edge function deployed (JWT verification off — see §7) | ✅ done |
 | Phase 8 profile-photo sync (migration 0016) | ✅ done |
 | Phase 9 claim people by email (migration 0017) | ✅ done |
+| Phase 10 add people by searching accounts (migration 0018) | ✅ done |
 | **GitHub Actions secrets point at the new project** | ⛔ needs you — §6 below |
 
 Everything reachable through the management API is finished. What remains lives
@@ -172,3 +173,26 @@ Supabase confirms every address at signup, so anyone who signs up with a
 friend's email before the friend does gets the friend's seat and can see
 that group. Switch confirmation back on (Authentication → Sign In /
 Providers → Email) to close that; no code change is needed.
+
+
+## 10. Adding people: accounts only (Phase 10)
+
+New people join a group by being found, not typed in. Creating a group asks
+for a name and currency, then lets you search for friends who already have
+an account; People → Add people does the same for an existing group. Each
+person added gets a seat tied to their account, so the group is on their
+dashboard the next time they open the app, with the same rights as you.
+
+`search_accounts()` (migration 0018) is the only way to look across
+profiles, which RLS otherwise keeps private. It needs a signed-in caller and
+at least two characters, matches names by substring or a full email exactly,
+returns at most eight people, and shows name, photo and a masked email
+(`r•••@gmail.com`), never the address. Accounts without a photo are not
+listed, since they have not finished signing up.
+
+The trade-off: any signed-in user can find anyone else by name. That is what
+makes "search and add" work; restricting it would mean invite links instead.
+
+People without an account still exist in groups imported from before
+accounts (§9). They can be renamed or given an email to be claimed, but new
+ones can no longer be created.

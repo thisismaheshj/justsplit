@@ -1,117 +1,85 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Users } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { NumberInput } from '@/components/ui/number-input';
-import { SetupPeopleStep, type DraftPerson } from './SetupPeopleStep';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { SetupGroupStep } from './SetupGroupStep';
+import { AccountSearch } from '@/components/people/AccountSearch';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { useGroupStore } from '@/store/useGroupStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Logo } from '@/components/brand/Logo';
-import { generateId } from '@/lib/id';
+import type { AccountMatch } from '@/lib/groupsApi';
+import { colorFromString } from '@/lib/avatar';
 import { cn, errorMessage } from '@/lib/utils';
-import { toast } from 'sonner';
 
-const MIN_PEOPLE = 1;
-const MAX_PEOPLE = 20;
-const STEP_TITLES = ['Who is splitting?', 'Name everyone', 'Name your group'];
-const STEP_HINTS = [
-  'You can add or remove people any time later.',
-  "You're already in. A photo for everyone else is optional.",
-  'Pick the currency you will be spending in.',
+const STEPS = [
+  { title: 'Name your group', hint: 'A trip, a flat, a dinner club — anything you split costs in.' },
+  { title: 'Add people', hint: 'Search for friends who have an account. The group shows up for them as soon as they sign in.' },
 ];
-
-function makeDraft(): DraftPerson {
-  return { key: generateId(), name: '' };
-}
 
 export function SetupWizard() {
   const navigate = useNavigate();
   const createGroup = useGroupStore((s) => s.createGroup);
-  const existingGroup = useGroupStore((s) => s.group);
   const profile = useAuthStore((s) => s.profile);
 
   const [step, setStep] = useState(0);
-  const [count, setCount] = useState(2);
-  // The first seat is always the signed-in account (create_group seats the
-  // owner), so it starts filled in with your profile rather than blank.
-  const [people, setPeople] = useState<DraftPerson[]>(() => [
-    { key: generateId(), name: profile?.name ?? '', avatarPhoto: profile?.avatarUrl ?? undefined, self: true },
-    makeDraft(),
-  ]);
   const [groupName, setGroupName] = useState('');
   const [currency, setCurrency] = useState('INR');
+  const [members, setMembers] = useState<AccountMatch[]>([]);
   const [saving, setSaving] = useState(false);
 
-  /** Grow/shrink the draft list while preserving already-typed names. */
-  const applyCount = (next: number) => {
-    setCount(next);
-    setPeople((current) => {
-      if (next === current.length) return current;
-      if (next < current.length) return current.slice(0, next);
-      return [...current, ...Array.from({ length: next - current.length }, makeDraft)];
-    });
-  };
-
-  const stepValid = useMemo(() => {
-    if (step === 0) return count >= MIN_PEOPLE && count <= MAX_PEOPLE;
-    if (step === 1) return people.every((p) => p.name.trim().length > 0);
-    return groupName.trim().length > 0 && currency.length === 3;
-  }, [step, count, people, groupName, currency]);
+  const stepValid = step === 0 ? groupName.trim().length > 0 && currency.length === 3 : true;
 
   const finish = async () => {
-    if (!stepValid || saving) return;
+    if (saving) return;
     setSaving(true);
     try {
-      await createGroup(
-        groupName,
-        currency,
-        people.map((p) => ({ name: p.name, avatarPhoto: p.avatarPhoto })),
-      );
+      await createGroup(groupName, currency, members);
       toast.success(`${groupName.trim()} is ready`, {
-        description: 'Add your first expense to get started.',
+        description: members.length
+          ? `${members.length} ${members.length === 1 ? 'person' : 'people'} added. Add your first expense.`
+          : 'Add your first expense, or add people from the People tab.',
       });
       navigate('/home', { replace: true });
     } catch (error) {
       setSaving(false);
-      toast.error('Could not create that group', {
-        description: errorMessage(error),
-      });
+      toast.error('Could not create that group', { description: errorMessage(error) });
     }
   };
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 py-8">
-      <header className="mb-8 flex flex-col gap-5">
-        <Logo />
+    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 pt-[max(2rem,env(safe-area-inset-top))]">
+      <header className="mb-8 flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <Logo />
+          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} aria-label="Cancel">
+            <X aria-hidden />
+          </Button>
+        </div>
 
-        <div>
-          <div
-            className="flex items-center gap-2"
-            role="progressbar"
-            aria-valuemin={1}
-            aria-valuemax={3}
-            aria-valuenow={step + 1}
-            aria-label={`Step ${step + 1} of 3`}
-          >
-            {[0, 1, 2].map((index) => (
-              <span
-                key={index}
-                className={cn(
-                  'h-1.5 flex-1 rounded-full transition-colors',
-                  index <= step ? 'bg-primary' : 'bg-muted',
-                )}
-              />
-            ))}
-          </div>
-          <p className="mt-2 text-caption text-muted-foreground">Step {step + 1} of 3</p>
+        <div
+          className="flex items-center gap-2"
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={STEPS.length}
+          aria-valuenow={step + 1}
+          aria-label={`Step ${step + 1} of ${STEPS.length}`}
+        >
+          {STEPS.map((_, index) => (
+            <span
+              key={index}
+              className={cn('h-1 flex-1 rounded-full transition-colors', index <= step ? 'bg-primary' : 'bg-muted')}
+            />
+          ))}
         </div>
 
         <div>
-          <h1 className="text-page font-semibold">{STEP_TITLES[step]}</h1>
-          <p className="mt-1 text-body text-muted-foreground">{STEP_HINTS[step]}</p>
+          <h1 className="text-page font-semibold">{STEPS[step].title}</h1>
+          <p className="mt-1 text-body text-muted-foreground">{STEPS[step].hint}</p>
         </div>
       </header>
 
@@ -122,69 +90,74 @@ export function SetupWizard() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
         >
-            {step === 0 && (
-              <div className="rounded-2xl border border-border bg-card p-5">
-                <Field
-                  id="people-count"
-                  label="How many people?"
-                  hint={`Between ${MIN_PEOPLE} and ${MAX_PEOPLE}.`}
-                >
-                  {(fieldProps) => (
-                    <NumberInput
-                      {...fieldProps}
-                      withSteppers
-                      value={count}
-                      min={MIN_PEOPLE}
-                      max={MAX_PEOPLE}
-                      onChange={applyCount}
+          {step === 0 && (
+            <SetupGroupStep
+              name={groupName}
+              currency={currency}
+              onNameChange={setGroupName}
+              onCurrencyChange={setCurrency}
+            />
+          )}
+
+          {step === 1 && (
+            <div className="flex flex-col gap-5">
+              <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                <li className="flex min-h-14 items-center gap-3 px-4 py-2.5">
+                  <ProfileAvatar size="md" />
+                  <span className="min-w-0 flex-1 truncate text-body font-medium">{profile?.name || 'You'}</span>
+                  <Badge variant="primary">You</Badge>
+                </li>
+                {members.map((m) => (
+                  <li key={m.userId} className="flex min-h-14 items-center gap-3 px-4 py-2.5">
+                    <Avatar
+                      person={{ name: m.name, avatarColor: colorFromString(m.userId), avatarPhoto: m.avatarUrl }}
+                      size="md"
                     />
-                  )}
-                </Field>
-                <p className="mt-4 flex items-center gap-2 text-caption text-muted-foreground">
-                  <Users className="size-4 shrink-0" aria-hidden />
-                  Everyone is added to new expenses by default.
-                </p>
-              </div>
-            )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-body font-medium">{m.name}</span>
+                      {m.emailHint && <span className="block truncate text-caption text-muted-foreground">{m.emailHint}</span>}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMembers((cur) => cur.filter((x) => x.userId !== m.userId))}
+                      aria-label={`Remove ${m.name}`}
+                      className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <X className="size-4" aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
-            {step === 1 && <SetupPeopleStep people={people} onChange={setPeople} />}
-
-            {step === 2 && (
-              <SetupGroupStep
-                name={groupName}
-                currency={currency}
-                onNameChange={setGroupName}
-                onCurrencyChange={setCurrency}
+              <AccountSearch
+                autoFocus
+                excludeUserIds={members.map((m) => m.userId)}
+                onSelect={(account) => setMembers((cur) => [...cur, account])}
               />
-            )}
+            </div>
+          )}
         </motion.div>
       </div>
 
       <footer className="safe-bottom sticky bottom-0 mt-8 flex items-center gap-3 bg-background/85 py-4 backdrop-blur-xl">
-        {step > 0 ? (
+        {step > 0 && (
           <Button variant="secondary" onClick={() => setStep((s) => s - 1)}>
             <ArrowLeft aria-hidden />
             Back
           </Button>
-        ) : (
-          existingGroup && (
-            <Button variant="ghost" onClick={() => navigate('/home')}>
-              Cancel
-            </Button>
-          )
         )}
 
         <div className="flex-1" />
 
-        {step < 2 ? (
+        {step < STEPS.length - 1 ? (
           <Button disabled={!stepValid} onClick={() => setStep((s) => s + 1)}>
             Continue
             <ArrowRight aria-hidden />
           </Button>
         ) : (
-          <Button disabled={!stepValid} loading={saving} onClick={() => void finish()}>
+          <Button loading={saving} onClick={() => void finish()}>
             <Check aria-hidden />
-            Create group
+            {members.length ? 'Create group' : 'Create with just me'}
           </Button>
         )}
       </footer>

@@ -71,7 +71,7 @@ export function DashboardView() {
       <EmptyState
         icon={<LayoutGrid />}
         title="No groups yet"
-        description="Create a trip or a household and start splitting. Everything you add shows up here."
+        description="Create a group for a trip or your flat. If a friend adds you to theirs, it shows up here automatically."
         action={
           <Button asChild>
             <Link to="/groups/new">

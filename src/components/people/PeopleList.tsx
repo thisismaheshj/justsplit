@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { BalanceAmount } from '@/components/ui/balance-amount';
 import { SectionHeader } from '@/components/ui/section-header';
-import { PersonFormDialog } from './PersonFormDialog';
+import { AddPeopleDialog } from './AddPeopleDialog';
 
 import { useGroupStore } from '@/store/useGroupStore';
 import { useBalances } from '@/hooks/usePersonBalance';
@@ -34,7 +34,7 @@ export function PeopleList() {
         action={
           <Button size="sm" onClick={() => setDialogOpen(true)}>
             <Plus aria-hidden />
-            Add Person
+            Add people
           </Button>
         }
       />
@@ -80,7 +80,7 @@ export function PeopleList() {
         <Card className="flex flex-col items-center gap-3 px-6 py-10 text-center">
           <UserPlus className="size-6 text-muted-foreground" aria-hidden />
           <p className="text-section font-semibold">No one here yet</p>
-          <Button onClick={() => setDialogOpen(true)}>Add the first person</Button>
+          <Button onClick={() => setDialogOpen(true)}>Add people</Button>
         </Card>
       )}
 
@@ -116,7 +116,7 @@ export function PeopleList() {
         </section>
       )}
 
-      <PersonFormDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddPeopleDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 }

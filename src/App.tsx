@@ -9,6 +9,7 @@ import { BootSkeleton } from '@/components/layout/HydrationGate';
 import { SupabaseNotice } from '@/components/auth/SupabaseNotice';
 import { Button } from '@/components/ui/button';
 import { isProfileComplete } from '@/lib/authValidation';
+import { readLegacyGroup } from '@/lib/legacyLocal';
 
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
@@ -122,17 +123,23 @@ function GroupGate() {
   return <Outlet />;
 }
 
-/** Any route but /setup requires a group to be open. */
+/** Group screens need a group open; without one, the dashboard explains what to do. */
 function RequireGroup() {
   const groupId = useGroupStore((s) => s.groupId);
-  if (!groupId) return <Navigate to="/setup" replace />;
+  if (!groupId) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 
-/** First run goes to setup; everyone else lands on the cross-group dashboard. */
+/**
+ * Everyone lands on the dashboard. A brand-new account is not pushed into
+ * creating a group: a friend may already have added them to one, and the
+ * dashboard offers "create" when there is nothing yet. The one exception is a
+ * browser still holding a pre-accounts group, which /setup offers to import.
+ */
 function IndexRoute() {
   const groups = useGroupStore((s) => s.groups);
-  return <Navigate to={groups.length > 0 ? '/dashboard' : '/setup'} replace />;
+  const hasLegacy = groups.length === 0 && readLegacyGroup() !== null;
+  return <Navigate to={hasLegacy ? '/setup' : '/dashboard'} replace />;
 }
 
 export default function App() {
