@@ -54,6 +54,12 @@ export interface GroupStore extends AppState {
   selectGroup: (groupId: string) => Promise<void>;
   refresh: () => Promise<void>;
   clearLocal: () => void;
+  /**
+   * Shows an account's current name and photo on its seat in the open group.
+   * Display only: the database copy is kept in step by saveProfile and by the
+   * triggers in migration 0016.
+   */
+  syncAccountSeat: (userId: string, profile: { name: string; avatarPhoto?: string }) => void;
 
   createGroup: (
     name: string,
@@ -169,6 +175,28 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
     setHydrated: (value) => set({ hydrated: value }),
 
     clearLocal: () => set({ ...emptyState, groupId: null, groups: [], hydrated: true }),
+
+    syncAccountSeat: (userId, profile) => {
+      const name = profile.name.trim().slice(0, 40);
+      const stale = get().people.some(
+        (p) =>
+          p.userId === userId &&
+          ((name && p.name !== name) || (profile.avatarPhoto && p.avatarPhoto !== profile.avatarPhoto)),
+      );
+      // Bail before set() so subscribers are not re-rendered for nothing.
+      if (!stale) return;
+      set((s) => ({
+        people: s.people.map((p) =>
+          p.userId === userId
+            ? {
+                ...p,
+                ...(name ? { name } : {}),
+                ...(profile.avatarPhoto ? { avatarPhoto: profile.avatarPhoto } : {}),
+              }
+            : p,
+        ),
+      }));
+    },
 
     bootstrap: async () => {
       set({ loading: true });

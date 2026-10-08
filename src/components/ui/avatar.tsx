@@ -9,6 +9,7 @@ const SIZES = {
   md: 'size-10 text-body',
   lg: 'size-14 text-section',
   xl: 'size-20 text-page',
+  '2xl': 'size-28 text-page',
 } as const;
 
 export interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -18,6 +19,10 @@ export interface AvatarProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 export function Avatar({ person, size = 'md', className, ...props }: AvatarProps) {
   const initials = generateInitials(person.name);
+  // A photo URL can go stale (a revoked Google picture, a bad upload); fall
+  // back to initials instead of a broken-image glyph.
+  const [failedSrc, setFailedSrc] = React.useState<string | null>(null);
+  const photo = person.avatarPhoto && person.avatarPhoto !== failedSrc ? person.avatarPhoto : undefined;
 
   return (
     <span
@@ -27,14 +32,21 @@ export function Avatar({ person, size = 'md', className, ...props }: AvatarProps
         className,
       )}
       style={
-        person.avatarPhoto
+        photo
           ? undefined
           : { backgroundColor: person.avatarColor, color: contrastText(person.avatarColor) }
       }
       {...props}
     >
-      {person.avatarPhoto ? (
-        <img src={person.avatarPhoto} alt={person.name} className="size-full object-cover" />
+      {photo ? (
+        <img
+          src={photo}
+          alt={person.name}
+          decoding="async"
+          draggable={false}
+          onError={() => setFailedSrc(photo)}
+          className="size-full bg-muted object-cover"
+        />
       ) : (
         <span aria-hidden>{initials}</span>
       )}

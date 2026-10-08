@@ -13,6 +13,8 @@ import { BalanceAmount } from '@/components/ui/balance-amount';
 import { SectionHeader } from '@/components/ui/section-header';
 import { ExpenseListItem } from '@/components/expenses/ExpenseListItem';
 import { PersonFormDialog } from './PersonFormDialog';
+import { EditProfileDialog } from '@/components/profile/EditProfileDialog';
+import { useAuthStore } from '@/store/useAuthStore';
 
 import { useGroupStore } from '@/store/useGroupStore';
 import { useBalances } from '@/hooks/usePersonBalance';
@@ -34,6 +36,11 @@ export function PersonDetail({ person }: { person: Person }) {
   const balance = balances[person.id] ?? 0;
 
   const [editOpen, setEditOpen] = useState(false);
+  const myUserId = useAuthStore((s) => s.user?.id);
+  const isMe = Boolean(person.userId && person.userId === myUserId);
+  // A seat that belongs to someone else's account takes its name and photo
+  // from that account, so nobody else can change them here.
+  const managedByAccount = Boolean(person.userId) && !isMe;
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const history = selectTransactionsForPerson(store, person.id);
@@ -50,6 +57,7 @@ export function PersonDetail({ person }: { person: Person }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="truncate text-page font-semibold">{person.name}</h2>
+            {isMe && <Badge variant="primary">You</Badge>}
             {person.archived && (
               <Badge variant="outline">
                 <Archive aria-hidden />
@@ -66,10 +74,12 @@ export function PersonDetail({ person }: { person: Person }) {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
-            <Pencil aria-hidden />
-            Edit
-          </Button>
+          {!managedByAccount && (
+            <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil aria-hidden />
+              {isMe ? 'Edit profile' : 'Edit'}
+            </Button>
+          )}
           {!person.archived && (
             <Button
               variant="secondary"
@@ -136,7 +146,11 @@ export function PersonDetail({ person }: { person: Person }) {
         )}
       </section>
 
-      <PersonFormDialog open={editOpen} onOpenChange={setEditOpen} person={person} />
+      {isMe ? (
+        <EditProfileDialog open={editOpen} onOpenChange={setEditOpen} />
+      ) : (
+        <PersonFormDialog open={editOpen} onOpenChange={setEditOpen} person={person} />
+      )}
 
       <ConfirmDialog
         open={confirmRemove}

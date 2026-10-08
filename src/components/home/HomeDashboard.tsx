@@ -36,7 +36,7 @@ export function HomeDashboard() {
   const singlePerson = activePeople.length <= 1;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-7">
       <div className="hidden md:flex md:items-center md:justify-between md:gap-4">
         <div>
           <h2 className="text-page font-semibold">{store.group?.name}</h2>
@@ -126,13 +126,6 @@ export function HomeDashboard() {
           />
         )}
       </section>
-
-      <Button asChild size="lg" className="md:hidden">
-        <Link to="/add-expense">
-          <Plus aria-hidden />
-          Add Expense
-        </Link>
-      </Button>
     </div>
   );
 }

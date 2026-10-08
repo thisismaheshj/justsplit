@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { firstName } from '@/lib/avatar';
 import type { Person } from '@/types';
 
 interface ParticipantSelectorProps {
@@ -65,7 +66,8 @@ export function ParticipantSelector({
                   isOn ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
-                {person.name}
+                <span aria-hidden>{firstName(person.name)}</span>
+                <span className="sr-only">{person.name}</span>
               </span>
             </button>
           );

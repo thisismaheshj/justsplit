@@ -1,5 +1,6 @@
 import { Avatar } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { firstName } from '@/lib/avatar';
 import type { Person } from '@/types';
 
 interface PayerSelectorProps {
@@ -36,7 +37,8 @@ export function PayerSelector({ people, value, onChange, label = 'Paid by' }: Pa
                 selected ? 'text-primary' : 'text-muted-foreground',
               )}
             >
-              {person.name}
+              <span aria-hidden>{firstName(person.name)}</span>
+              <span className="sr-only">{person.name}</span>
             </span>
           </button>
         );

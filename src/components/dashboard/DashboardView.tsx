@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 
 import { OverallBalance } from './OverallBalance';
 import { GroupCard } from './GroupCard';
@@ -86,19 +87,21 @@ export function DashboardView() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-page font-semibold">
+      <div className="flex items-center gap-3">
+        <ProfileAvatar size="lg" className="ring-2 ring-card" />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-page font-semibold">
             {firstName ? `Hello, ${firstName}` : 'Overview'}
           </h2>
           <p className="text-body text-muted-foreground">
             {groups.length} {groups.length === 1 ? 'group' : 'groups'} across your account
           </p>
         </div>
-        <Button asChild>
+        <Button asChild variant="secondary" size="sm" className="shrink-0">
           <Link to="/groups/new">
             <Plus aria-hidden />
-            New group
+            <span className="hidden sm:inline">New group</span>
+            <span className="sm:hidden">New</span>
           </Link>
         </Button>
       </div>

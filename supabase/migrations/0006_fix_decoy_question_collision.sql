@@ -57,5 +57,12 @@ grant execute on function public.recovery_questions_for_email(text) to anon, aut
 
 -- 2. rls_auto_enable() is an event-trigger function and was reachable at
 --    /rest/v1/rpc/rls_auto_enable. Same class of issue migration 0002 fixed for
---    handle_new_user(); the database linter flags both.
-revoke all on function public.rls_auto_enable() from public, anon, authenticated;
+--    handle_new_user(); the database linter flags both. Guarded because the
+--    function is project-specific: a fresh project may not have it at all.
+do $$
+begin
+  if to_regprocedure('public.rls_auto_enable()') is not null then
+    revoke all on function public.rls_auto_enable() from public, anon, authenticated;
+  end if;
+end;
+$$;

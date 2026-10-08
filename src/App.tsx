@@ -7,12 +7,15 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { BootSkeleton } from '@/components/layout/HydrationGate';
 import { SupabaseNotice } from '@/components/auth/SupabaseNotice';
+import { Button } from '@/components/ui/button';
+import { isProfileComplete } from '@/lib/authValidation';
 
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import SetupRecoveryPage from '@/pages/SetupRecoveryPage';
+import ProfileSetupPage from '@/pages/ProfileSetupPage';
 import SetupPage from '@/pages/SetupPage';
 import NewGroupPage from '@/pages/NewGroupPage';
 import DashboardPage from '@/pages/DashboardPage';
@@ -51,6 +54,34 @@ function RedirectIfAuthed() {
   return <Outlet />;
 }
 
+/**
+ * A name and photo are required before anything else opens. Waits for the
+ * profile read the same way RequireAuth waits for the session, so a returning
+ * user with a photo is never flashed through the photo step.
+ */
+function RequireProfile() {
+  const profileStatus = useAuthStore((s) => s.profileStatus);
+  const profile = useAuthStore((s) => s.profile);
+  const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const location = useLocation();
+
+  if (profileStatus === 'idle' || profileStatus === 'loading') return <AuthBootSkeleton />;
+  if (profileStatus === 'error') {
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <p className="text-body text-muted-foreground">We couldn't load your profile. Check your connection.</p>
+        <Button variant="secondary" onClick={() => void refreshProfile()}>
+          Try again
+        </Button>
+      </main>
+    );
+  }
+  if (!isProfileComplete(profile)) {
+    return <Navigate to="/setup-profile" replace state={{ next: location.pathname + location.search }} />;
+  }
+  return <Outlet />;
+}
+
 function AuthBootSkeleton() {
   return <div className="min-h-dvh bg-background" aria-busy="true" aria-live="polite" />;
 }
@@ -66,6 +97,10 @@ function GroupGate() {
   const hydrated = useGroupStore((s) => s.hydrated);
   const bootstrap = useGroupStore((s) => s.bootstrap);
   const clearLocal = useGroupStore((s) => s.clearLocal);
+  const syncAccountSeat = useGroupStore((s) => s.syncAccountSeat);
+  const people = useGroupStore((s) => s.people);
+  const profileName = useAuthStore((s) => s.profile?.name);
+  const profilePhoto = useAuthStore((s) => s.profile?.avatarUrl);
 
   useEffect(() => {
     if (!userId) {
@@ -75,6 +110,13 @@ function GroupGate() {
     }
     void bootstrap();
   }, [userId, bootstrap, clearLocal]);
+
+  // Your own seat always shows your current profile, including the moment
+  // after you change your photo, without waiting for a group reload.
+  useEffect(() => {
+    if (!userId || profileName === undefined) return;
+    syncAccountSeat(userId, { name: profileName, avatarPhoto: profilePhoto ?? undefined });
+  }, [userId, profileName, profilePhoto, people, syncAccountSeat]);
 
   if (!hydrated) return <BootSkeleton />;
   return <Outlet />;
@@ -116,29 +158,33 @@ export default function App() {
 
         {/* Authenticated */}
         <Route element={<RequireAuth />}>
-          <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
+          <Route path="/setup-profile" element={<ProfileSetupPage />} />
 
-          <Route element={<GroupGate />}>
-            <Route path="/" element={<IndexRoute />} />
-            <Route path="/setup" element={<SetupPage />} />
-            <Route path="/groups/new" element={<NewGroupPage />} />
+          <Route element={<RequireProfile />}>
+            <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
 
-            <Route element={<AppShell />}>
-              {/* The dashboard spans every group, so it must not sit behind
-                  RequireGroup -- a brand-new account has no active group yet. */}
-              <Route path="/dashboard" element={<DashboardPage />} />
+            <Route element={<GroupGate />}>
+              <Route path="/" element={<IndexRoute />} />
+              <Route path="/setup" element={<SetupPage />} />
+              <Route path="/groups/new" element={<NewGroupPage />} />
 
-              <Route element={<RequireGroup />}>
-                <Route path="/home" element={<HomePage />} />
-                <Route path="/people" element={<PeoplePage />} />
-                <Route path="/people/:personId" element={<PersonDetailPage />} />
-                <Route path="/expenses" element={<ExpensesPage />} />
-                <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
-                <Route path="/add-expense" element={<AddExpensePage />} />
-                <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
-                <Route path="/settle-up" element={<SettleUpPage />} />
-                <Route path="/recurring" element={<RecurringPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+              <Route element={<AppShell />}>
+                {/* The dashboard spans every group, so it must not sit behind
+                    RequireGroup -- a brand-new account has no active group yet. */}
+                <Route path="/dashboard" element={<DashboardPage />} />
+
+                <Route element={<RequireGroup />}>
+                  <Route path="/home" element={<HomePage />} />
+                  <Route path="/people" element={<PeoplePage />} />
+                  <Route path="/people/:personId" element={<PersonDetailPage />} />
+                  <Route path="/expenses" element={<ExpensesPage />} />
+                  <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
+                  <Route path="/add-expense" element={<AddExpensePage />} />
+                  <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
+                  <Route path="/settle-up" element={<SettleUpPage />} />
+                  <Route path="/recurring" element={<RecurringPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Route>
               </Route>
             </Route>
           </Route>

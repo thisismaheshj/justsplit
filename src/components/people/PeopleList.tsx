@@ -14,11 +14,13 @@ import { PersonFormDialog } from './PersonFormDialog';
 import { useGroupStore } from '@/store/useGroupStore';
 import { useBalances } from '@/hooks/usePersonBalance';
 import { describeBalance } from '@/store/selectors';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function PeopleList() {
   const people = useGroupStore((s) => s.people);
   const currency = useGroupStore((s) => s.group?.currency ?? 'USD');
   const balances = useBalances();
+  const myUserId = useAuthStore((s) => s.user?.id);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const active = people.filter((p) => !p.archived);
@@ -52,7 +54,10 @@ export function PeopleList() {
               >
                 <Avatar person={person} size="lg" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-label font-semibold">{person.name}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-label font-semibold">{person.name}</span>
+                    {person.userId && person.userId === myUserId && <Badge variant="primary">You</Badge>}
+                  </span>
                   <span className="block text-caption text-muted-foreground">
                     {describeBalance(balances[person.id] ?? 0, currency)}
                   </span>

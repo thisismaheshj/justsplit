@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { NumberInput } from '@/components/ui/number-input';
 import { SetupPeopleStep, type DraftPerson } from './SetupPeopleStep';
 import { SetupGroupStep } from './SetupGroupStep';
 import { useGroupStore } from '@/store/useGroupStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Logo } from '@/components/brand/Logo';
 import { generateId } from '@/lib/id';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -17,7 +19,7 @@ const MAX_PEOPLE = 20;
 const STEP_TITLES = ['Who is splitting?', 'Name everyone', 'Name your group'];
 const STEP_HINTS = [
   'You can add or remove people any time later.',
-  'A photo is optional — initials work fine.',
+  "You're already in. A photo for everyone else is optional.",
   'Pick the currency you will be spending in.',
 ];
 
@@ -29,10 +31,16 @@ export function SetupWizard() {
   const navigate = useNavigate();
   const createGroup = useGroupStore((s) => s.createGroup);
   const existingGroup = useGroupStore((s) => s.group);
+  const profile = useAuthStore((s) => s.profile);
 
   const [step, setStep] = useState(0);
   const [count, setCount] = useState(2);
-  const [people, setPeople] = useState<DraftPerson[]>(() => [makeDraft(), makeDraft()]);
+  // The first seat is always the signed-in account (create_group seats the
+  // owner), so it starts filled in with your profile rather than blank.
+  const [people, setPeople] = useState<DraftPerson[]>(() => [
+    { key: generateId(), name: profile?.name ?? '', avatarPhoto: profile?.avatarUrl ?? undefined, self: true },
+    makeDraft(),
+  ]);
   const [groupName, setGroupName] = useState('');
   const [currency, setCurrency] = useState('INR');
   const [saving, setSaving] = useState(false);
@@ -77,17 +85,7 @@ export function SetupWizard() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col px-4 py-8">
       <header className="mb-8 flex flex-col gap-5">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Wallet className="size-5" aria-hidden />
-          </span>
-          <div>
-            <p className="text-label font-semibold leading-tight">JustSplit</p>
-            <p className="text-caption text-muted-foreground">
-              Split expenses without the paperwork
-            </p>
-          </div>
-        </div>
+        <Logo />
 
         <div>
           <div
@@ -162,7 +160,7 @@ export function SetupWizard() {
         </motion.div>
       </div>
 
-      <footer className="sticky bottom-0 mt-8 flex items-center gap-3 bg-background/90 py-4 backdrop-blur">
+      <footer className="safe-bottom sticky bottom-0 mt-8 flex items-center gap-3 bg-background/85 py-4 backdrop-blur-xl">
         {step > 0 ? (
           <Button variant="secondary" onClick={() => setStep((s) => s - 1)}>
             <ArrowLeft aria-hidden />

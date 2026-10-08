@@ -112,3 +112,25 @@ export function validateSignIn(input: { email: string; password: string }): Vali
   if (!input.password) errors.password = 'Password is required';
   return { valid: Object.keys(errors).length === 0, errors };
 }
+
+/* ------------------------------------------------------------- profile --- */
+
+export type ProfileField = 'name' | 'photo';
+
+/**
+ * The photo is required, not optional: it is how everyone else in a group
+ * tells you apart at a glance, so an account without one never reaches the app.
+ */
+export function validateProfile(input: { name: string; photo: string | null | undefined }): ValidationResult<ProfileField> {
+  const errors: FieldErrors<ProfileField> = {};
+  const name = input.name.trim();
+  if (!name) errors.name = 'Enter your name';
+  else if (name.length > 40) errors.name = 'Keep it under 40 characters';
+  if (!input.photo) errors.photo = 'Add a photo so your group can recognise you';
+  return { valid: Object.keys(errors).length === 0, errors };
+}
+
+/** True once an account has everything the app needs to show it to others. */
+export function isProfileComplete(profile: { name: string; avatarUrl: string | null } | null): boolean {
+  return Boolean(profile && profile.name.trim() && profile.avatarUrl);
+}

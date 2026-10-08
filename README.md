@@ -1,8 +1,9 @@
 # JustSplit
 
 A minimal, frictionless expense-splitting app — a lightweight Splitwise alternative.
-No accounts, no backend, no payments. Everything runs client-side and persists to
-`localStorage`.
+Sign in with email and password; every account has a required profile photo that
+appears next to its name in every group. Data lives in Supabase (Postgres with
+row-level security) — see `SUPABASE_SETUP.md`.
 
 **Live app: https://thisismaheshj.github.io/justsplit/**
 
@@ -112,5 +113,4 @@ the app and lets React Router handle the URL — without it, opening
 
 ## Out of scope
 
-No auth, payments, AI, OCR, charts, social features, multi-currency conversion, or
-server. Clearing browser site data deletes everything.
+Payments, AI, OCR, charts, social sign-in, and multi-currency conversion.

@@ -1,19 +1,22 @@
 /**
- * Avatar photos live in localStorage, which is a ~5MB budget for the whole
- * app. Every upload is downscaled and re-encoded to a small square JPEG
- * (~6-10KB) before it is stored.
+ * Avatar photos are stored inline as data URLs on their row, and every member
+ * row is read whenever a group opens. Every upload is downscaled and
+ * re-encoded to a small square JPEG (~6-10KB at 192px) before it is stored.
  */
 const MAX_DIMENSION = 192;
 const QUALITY = 0.82;
 
-export async function fileToAvatarDataUrl(file: File): Promise<string> {
+/** Account photos are shown larger (profile header, menus), so keep more pixels. */
+export const PROFILE_PHOTO_DIMENSION = 320;
+
+export async function fileToAvatarDataUrl(file: File, maxDimension = MAX_DIMENSION): Promise<string> {
   if (!file.type.startsWith('image/')) {
     throw new Error('Please choose an image file');
   }
 
   const dataUrl = await readAsDataUrl(file);
   try {
-    return await downscaleSquare(dataUrl);
+    return await downscaleSquare(dataUrl, maxDimension);
   } catch {
     // Canvas unavailable (or a format the browser cannot decode) — only keep
     // the original if it is small enough to be safe.
@@ -31,12 +34,12 @@ function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
-function downscaleSquare(dataUrl: string): Promise<string> {
+function downscaleSquare(dataUrl: string, maxDimension: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => {
       const side = Math.min(image.width, image.height);
-      const size = Math.min(MAX_DIMENSION, side);
+      const size = Math.min(maxDimension, side);
       const canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;

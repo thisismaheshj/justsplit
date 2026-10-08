@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { useAuthStore } from '@/store/useAuthStore';
 import { BalanceAmount, BalancePhrase } from '@/components/ui/balance-amount';
 import type { BalanceMap, Person } from '@/types';
 
@@ -15,6 +17,7 @@ export function BalanceList({
   balances: BalanceMap;
   currency: string;
 }) {
+  const myUserId = useAuthStore((s) => s.user?.id);
   const sorted = [...people].sort(
     (a, b) => (balances[b.id] ?? 0) - (balances[a.id] ?? 0),
   );
@@ -36,7 +39,10 @@ export function BalanceList({
             >
               <Avatar person={person} size="md" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-label font-medium">{person.name}</span>
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-label font-medium">{person.name}</span>
+                  {person.userId && person.userId === myUserId && <Badge variant="primary">You</Badge>}
+                </span>
                 <BalancePhrase balance={balance} currency={currency} />
               </span>
               <span className="shrink-0 whitespace-nowrap">

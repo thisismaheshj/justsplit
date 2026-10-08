@@ -169,10 +169,6 @@ export function SettingsPageContent() {
         <DataResetSection />
       </Section>
 
-      <p className="pb-4 text-center text-caption text-muted-foreground">
-        JustSplit stores everything in this browser. Clearing site data removes it for good.
-      </p>
-
       <ConfirmDialog
         open={newGroupOpen}
         onOpenChange={setNewGroupOpen}

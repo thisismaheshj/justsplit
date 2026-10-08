@@ -308,7 +308,7 @@ export function AddExpenseForm({ expense }: AddExpenseFormProps) {
 
         <div
           className={cn(
-            'safe-bottom fixed inset-x-0 bottom-16 z-30 flex gap-2 border-t border-border bg-background/95 p-4 backdrop-blur',
+            'fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 flex gap-2 border-t border-border/70 bg-background/85 px-4 py-3 backdrop-blur-xl',
             'md:static md:inset-auto md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none',
           )}
         >

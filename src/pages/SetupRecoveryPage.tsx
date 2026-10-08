@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,6 +26,8 @@ const EMPTY: QuestionPair = { q1: '', a1: '', q2: '', a2: '' };
  */
 export default function SetupRecoveryPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const onboarding = Boolean((location.state as { onboarding?: boolean } | null)?.onboarding);
   const user = useAuthStore((s) => s.user);
 
   const questions = useRecoveryStore((s) => s.questions);
@@ -70,6 +72,7 @@ export default function SetupRecoveryPage() {
     <AuthCard
       title="Secure your account"
       subtitle="Two questions, so a forgotten password is not the end"
+      step={onboarding ? { current: 3, total: 3 } : undefined}
       footer={
         <button
           type="button"

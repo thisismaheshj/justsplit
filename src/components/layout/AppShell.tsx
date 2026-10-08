@@ -22,7 +22,7 @@ export function AppShell() {
         <TopBar />
         <main
           id="main"
-          className="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-4 md:px-8 md:pb-12 md:pt-6"
+          className="mx-auto w-full max-w-[1200px] px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:pb-12 md:pt-6"
         >
           {/* Keyed on the path so each page fades and slides in on its own.
               Enter-only: a `mode="wait"` exit would have to wait on every

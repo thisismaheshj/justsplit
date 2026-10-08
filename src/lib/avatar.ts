@@ -44,3 +44,8 @@ export function contrastText(hex: string): string {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.6 ? '#0f172a' : '#ffffff';
 }
+
+/** "Priya Sharma" -> "Priya". For tight labels under an avatar. */
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name;
+}

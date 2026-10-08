@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured, authRedirectUrl, authErrorMessage } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, authErrorMessage } from '@/lib/supabase';
 
 export interface Profile {
   id: string;
@@ -16,10 +16,18 @@ export interface Profile {
  */
 export type AuthStatus = 'loading' | 'authed' | 'anon';
 
+/**
+ * Tracked separately from AuthStatus: a session can be known while its
+ * profile is still in flight, and the photo guard must not mistake "not loaded
+ * yet" for "has no photo" any more than RequireAuth may mistake loading for anon.
+ */
+export type ProfileStatus = 'idle' | 'loading' | 'ready' | 'error';
+
 export interface AuthStore {
   status: AuthStatus;
   user: User | null;
   profile: Profile | null;
+  profileStatus: ProfileStatus;
   /** Last auth error, for surfacing in the UI. */
   error: string | null;
 
@@ -28,15 +36,20 @@ export interface AuthStore {
 
   signUpWithEmail: (input: { name: string; email: string; password: string }) => Promise<boolean>;
   signInWithEmail: (input: { email: string; password: string }) => Promise<boolean>;
-  signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  /** Saves name and photo. Returns an error message, or null on success. */
+  saveProfile: (input: { name: string; avatarUrl: string }) => Promise<string | null>;
 }
 
 function notConfigured(): string {
   return 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local.';
 }
 
+/**
+ * Null means "no row"; a failed read throws, so the caller can tell the two
+ * apart instead of sending someone with a photo back to the photo step.
+ */
 async function loadProfile(userId: string): Promise<Profile | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
@@ -45,7 +58,8 @@ async function loadProfile(userId: string): Promise<Profile | null> {
     .eq('id', userId)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) throw error;
+  if (!data) return null;
   return {
     id: data.id as string,
     name: (data.name as string) ?? '',
@@ -58,6 +72,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   status: 'loading',
   user: null,
   profile: null,
+  profileStatus: 'idle',
   error: null,
 
   /**
@@ -73,11 +88,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
     const apply = async (session: Session | null) => {
       if (!session?.user) {
-        set({ status: 'anon', user: null, profile: null });
+        set({ status: 'anon', user: null, profile: null, profileStatus: 'idle' });
         return;
       }
-      set({ status: 'authed', user: session.user });
-      set({ profile: await loadProfile(session.user.id) });
+      // Token refreshes re-run this for the same user; reloading quietly in
+      // the background keeps the screen from flashing back to a skeleton.
+      const sameUser = get().profile?.id === session.user.id;
+      set({
+        status: 'authed',
+        user: session.user,
+        ...(sameUser ? {} : { profile: null, profileStatus: 'loading' as const }),
+      });
+      await get().refreshProfile();
     };
 
     void supabase.auth.getSession().then(({ data }) => apply(data.session));
@@ -126,30 +148,57 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     return true;
   },
 
-  signInWithGoogle: async () => {
-    if (!supabase) return set({ error: notConfigured() }), false;
-    set({ error: null });
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: authRedirectUrl() },
-    });
-    if (error) {
-      set({ error: authErrorMessage(error) });
-      return false;
-    }
-    return true; // the browser is navigating away
-  },
-
   signOut: async () => {
     if (supabase) await supabase.auth.signOut();
-    set({ status: 'anon', user: null, profile: null, error: null });
+    set({ status: 'anon', user: null, profile: null, profileStatus: 'idle', error: null });
   },
 
   refreshProfile: async () => {
     const { user } = get();
     if (!user) return;
-    set({ profile: await loadProfile(user.id) });
+    try {
+      const profile = await loadProfile(user.id);
+      // A sign-out may have landed while the read was in flight.
+      if (get().user?.id !== user.id) return;
+      set({ profile, profileStatus: 'ready' });
+    } catch {
+      if (get().user?.id !== user.id) return;
+      // Keep a profile we already have; only block when there is nothing.
+      set((s) => ({ profileStatus: s.profile ? 'ready' : 'error' }));
+    }
+  },
+
+  saveProfile: async ({ name, avatarUrl }) => {
+    const { user } = get();
+    if (!supabase || !user) return notConfigured();
+
+    const trimmed = name.trim();
+    const { error } = await supabase
+      .from('profiles')
+      // Upsert rather than update: an account created before the profile
+      // trigger existed may have no row yet.
+      .upsert({ id: user.id, name: trimmed, email: user.email ?? null, avatar_url: avatarUrl });
+    if (error) return authErrorMessage(error);
+
+    // Migration 0016 mirrors the profile onto every seat this account holds,
+    // server-side. Writing the seats here as well means fellow members see the
+    // new photo even on a database that has not had that migration yet; the
+    // RLS update policy already allows it, since these are the caller's groups.
+    await supabase
+      .from('group_members')
+      .update({ name: trimmed.slice(0, 40), avatar_photo: avatarUrl })
+      .eq('user_id', user.id);
+
+    set((s) => ({
+      profile: {
+        id: user.id,
+        email: s.profile?.email ?? user.email ?? null,
+        name: trimmed,
+        avatarUrl,
+      },
+      profileStatus: 'ready',
+    }));
+    return null;
   },
 }));
 

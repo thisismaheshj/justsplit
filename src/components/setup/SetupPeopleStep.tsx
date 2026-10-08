@@ -3,12 +3,16 @@ import { AlertTriangle } from 'lucide-react';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { colorFromString } from '@/lib/avatar';
 
 export interface DraftPerson {
   key: string;
   name: string;
   avatarPhoto?: string;
+  /** The signed-in account's own seat: shown from the profile, not editable here. */
+  self?: boolean;
 }
 
 interface SetupPeopleStepProps {
@@ -41,6 +45,16 @@ export function SetupPeopleStep({ people, onChange }: SetupPeopleStepProps) {
               transition={{ duration: 0.18 }}
               className="overflow-hidden"
             >
+              {person.self ? (
+                <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+                  <Avatar
+                    person={{ name: person.name || 'You', avatarColor: colorFromString(person.key), avatarPhoto: person.avatarPhoto }}
+                    size="lg"
+                  />
+                  <span className="min-w-0 flex-1 truncate text-label font-semibold">{person.name || 'You'}</span>
+                  <Badge variant="primary">You</Badge>
+                </div>
+              ) : (
               <div className="rounded-2xl border border-border bg-card p-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <AvatarUpload
@@ -55,7 +69,7 @@ export function SetupPeopleStep({ people, onChange }: SetupPeopleStepProps) {
                         <Input
                           {...fieldProps}
                           value={person.name}
-                          autoFocus={index === 0}
+                          autoFocus={index === 1}
                           placeholder="Name"
                           maxLength={40}
                           autoComplete="off"
@@ -72,6 +86,7 @@ export function SetupPeopleStep({ people, onChange }: SetupPeopleStepProps) {
                   </div>
                 </div>
               </div>
+              )}
             </motion.div>
           );
         })}

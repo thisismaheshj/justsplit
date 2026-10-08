@@ -1,64 +1,73 @@
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Plus } from 'lucide-react';
-import { MOBILE_NAV_ITEMS } from './nav-items';
+import { MOBILE_NAV_ITEMS, type NavItem } from './nav-items';
 import { cn } from '@/lib/utils';
 
+/**
+ * Four tabs with "Add expense" in the middle. Sitting in the bar rather than
+ * floating over the page, it never covers the last row of a list or a sticky
+ * save button, and it is where a thumb already rests.
+ */
 export function BottomNav() {
-  const { pathname } = useLocation();
-  // The floating action would only duplicate the screen you are already on,
-  // and it would sit on top of that screen's own sticky save bar.
-  const hideFab = pathname.startsWith('/add-expense') || pathname.startsWith('/settle-up');
+  const half = Math.ceil(MOBILE_NAV_ITEMS.length / 2);
+  const left = MOBILE_NAV_ITEMS.slice(0, half);
+  const right = MOBILE_NAV_ITEMS.slice(half);
 
   return (
-    <>
-      {!hideFab && (
-      <Link
-        to="/add-expense"
-        aria-label="Add expense"
-        className={cn(
-          'fixed bottom-20 right-4 z-40 flex size-14 items-center justify-center rounded-full md:hidden',
-          'bg-primary text-primary-foreground shadow-lg transition-transform active:scale-95',
-        )}
-      >
-        <Plus className="size-6" aria-hidden />
-      </Link>
-      )}
+    <nav
+      aria-label="Main"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-card/85 backdrop-blur-xl backdrop-saturate-150 md:hidden"
+    >
+      <ul className="flex h-16 items-stretch">
+        {left.map((item) => (
+          <Tab key={item.to} item={item} />
+        ))}
 
-      <nav
-        aria-label="Main"
-        className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card md:hidden"
+        <li className="flex flex-1 items-center justify-center">
+          <NavLink
+            to="/add-expense"
+            end
+            aria-label="Add expense"
+            className={({ isActive }) =>
+              cn(
+                'flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md shadow-primary/25',
+                'transition-transform active:scale-95',
+                isActive && 'ring-4 ring-primary-soft',
+              )
+            }
+          >
+            <Plus className="size-6" strokeWidth={2.25} aria-hidden />
+          </NavLink>
+        </li>
+
+        {right.map((item) => (
+          <Tab key={item.to} item={item} />
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function Tab({ item }: { item: NavItem }) {
+  return (
+    <li className="flex-1">
+      <NavLink
+        to={item.to}
+        className={({ isActive }) =>
+          cn(
+            'flex h-full flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium transition-colors',
+            isActive ? 'text-primary' : 'text-muted-foreground active:text-foreground',
+          )
+        }
       >
-        <ul className="flex items-stretch">
-          {MOBILE_NAV_ITEMS.map((item) => (
-            <li key={item.to} className="flex-1">
-              <NavLink
-                to={item.to}
-                className={({ isActive }) =>
-                  cn(
-                    'flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-caption font-medium transition-colors',
-                    isActive ? 'text-primary' : 'text-muted-foreground',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <span
-                      className={cn(
-                        'flex h-7 w-12 items-center justify-center rounded-full transition-colors',
-                        isActive && 'bg-primary-soft',
-                      )}
-                    >
-                      <item.icon className="size-5" aria-hidden />
-                    </span>
-                    {item.label}
-                    {isActive && <span className="sr-only">(current page)</span>}
-                  </>
-                )}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </>
+        {({ isActive }) => (
+          <>
+            <item.icon className="size-[22px]" strokeWidth={isActive ? 2.25 : 1.75} aria-hidden />
+            {item.label}
+            {isActive && <span className="sr-only">(current page)</span>}
+          </>
+        )}
+      </NavLink>
+    </li>
   );
 }

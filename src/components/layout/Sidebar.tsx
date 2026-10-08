@@ -4,6 +4,7 @@ import { NAV_ITEMS } from './nav-items';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { GroupSwitcher } from './GroupSwitcher';
+import { AccountMenu } from './AccountMenu';
 
 export function Sidebar() {
   return (
@@ -46,9 +47,9 @@ export function Sidebar() {
         ))}
       </ul>
 
-      <p className="mt-auto px-3 text-caption text-muted-foreground">
-        Everything is stored on this device only.
-      </p>
+      <div className="mt-auto border-t border-border pt-4">
+        <AccountMenu variant="sidebar" />
+      </div>
     </nav>
   );
 }

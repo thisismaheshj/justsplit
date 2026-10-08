@@ -4,22 +4,25 @@
 
 | Step | State |
 | --- | --- |
-| Project created (`jugylopmjqidimymhapv`, ap-southeast-1) | ✅ done |
-| Schema + RLS applied (migrations 0001, 0002) | ✅ done |
+| Project (`emsdruoczxumkpybvxot`; replaced the lost `jugylopmjqidimymhapv`) | ✅ done |
+| Schema + RLS applied (all migrations, 0001-0016) | ✅ done |
 | `.env.local` written with URL + publishable key | ✅ done |
 | Generated types in `src/types/database.ts` | ✅ done |
-| **Google sign-in** | ⛔ needs you — §4 below |
-| **Redirect URLs** | ⛔ needs you — §4 below |
+| Google sign-in | removed in Phase 8 — email and password only |
 | **Email confirmation setting** | ⛔ your call — §5 below |
 | Phase 3 recovery schema (migrations 0003, 0004) | ✅ done |
-| `password-recovery` edge function deployed | ✅ done |
+| `password-recovery` edge function deployed (JWT verification off — see §7) | ✅ done |
+| Phase 8 profile-photo sync (migration 0016) | ✅ done |
+| **GitHub Actions secrets point at the new project** | ⛔ needs you — §6 below |
 
 Everything reachable through the management API is finished. What remains lives
 in the Supabase and Google dashboards behind your login.
 
 ## 1. Project — done
 
-Project `jugylopmjqidimymhapv` in `ap-southeast-1`, Postgres 17.
+Project `emsdruoczxumkpybvxot`, Postgres 17. The original project
+(`jugylopmjqidimymhapv`) was lost; this one was rebuilt from
+`supabase/migrations/` on 2026-10-08 and starts with no users or data.
 
 ## 2. Schema — done
 
@@ -47,21 +50,9 @@ be rotated on its own. The file is gitignored.
 > Never put the **service_role** key in this app. It bypasses row-level security
 > entirely and would be readable by anyone who opens the bundle.
 
-## 4. Turn on Google sign-in — needs you
+## 4. Google sign-in — removed
 
-1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
-   create an **OAuth 2.0 Client ID** of type *Web application*.
-2. Under **Authorised redirect URIs**, add the callback Supabase gives you:
-   `https://<your-project>.supabase.co/auth/v1/callback`
-3. Copy the client ID and secret into Supabase → **Authentication** → **Providers**
-   → **Google**, and enable it.
-4. In Supabase → **Authentication** → **URL Configuration**, add both of these to
-   **Redirect URLs**:
-   - `http://localhost:5178/auth/callback`
-   - `https://<your-github-username>.github.io/justsplit/auth/callback`
-
-The dev port matters: if you run Vite on a different port, add that URL too, or
-Google will refuse the round trip.
+Phase 8 made the app email and password only, so no OAuth setup is needed.
 
 ## 5. Email confirmation — your call
 
@@ -128,8 +119,32 @@ a real answer to "what city were you born in?" is often a search away.
 ### Redeploying the function
 
 ```
-supabase functions deploy password-recovery
+supabase functions deploy password-recovery --no-verify-jwt
 ```
+
+JWT verification is off on purpose. The callers are signed out, and the app
+uses a publishable key (`sb_publishable_…`), which is not a JWT, so the
+gateway would reject every call. The function does its own checking: bcrypt
+answers in Postgres and a lockout after five wrong tries.
 
 The service-role key it uses is injected by the platform as
 `SUPABASE_SERVICE_ROLE_KEY`; it is never checked in and never reaches the browser.
+
+
+## 8. Required profile photo (Phase 8)
+
+Every account must have a name and a photo before the app opens. New sign-ups
+go sign up → add photo → security questions; an existing account without a
+photo is sent to the photo step on its next visit.
+
+- The photo is centre-cropped to a 320px JPEG in the browser (~5-15KB) and
+  stored as a data URL in `profiles.avatar_url`. No Storage bucket is needed.
+- Fellow group members cannot read your profile (RLS keeps it private), so the
+  photo and name are copied onto every `group_members` row linked to your
+  account. Migration `0016_member_seats_mirror_profile.sql` does this with two
+  triggers, so every write path (creating a group, importing, editing) stays
+  in step. Apply it in the SQL editor or with `supabase db push`.
+- Saving a profile also updates your existing seats from the client, so the
+  photo shows up immediately without waiting on a reload.
+- Google sign-in has been removed from the sign-in screens: the app is email
+  and password only.

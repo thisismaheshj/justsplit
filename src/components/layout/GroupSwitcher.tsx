@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronsUpDown, LayoutGrid, Plus, Wallet } from 'lucide-react';
+import { Check, ChevronDown, ChevronsUpDown, LayoutGrid, Plus, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useGroupStore } from '@/store/useGroupStore';
 import { getCurrency } from '@/lib/currency';
-import { cn } from '@/lib/utils';
 
 /**
  * Switching group reloads the whole ledger from Postgres, so it always lands
@@ -38,15 +37,22 @@ export function GroupSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar' | '
 
   return (
     <DropdownMenu>
+      {variant === 'compact' ? (
+        // On a phone the switcher is a slim pill: the group name is the only
+        // thing worth the space; currency lives in the menu.
+        <DropdownMenuTrigger
+          aria-label={`Switch group, current: ${group?.name ?? 'none'}`}
+          disabled={loading}
+          className="flex h-9 max-w-[42vw] items-center gap-1.5 rounded-full border border-border bg-card pl-3.5 pr-2.5 text-body font-medium shadow-sm transition-colors active:bg-muted"
+        >
+          <span className="truncate">{group?.name ?? 'Groups'}</span>
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </DropdownMenuTrigger>
+      ) : (
       <DropdownMenuTrigger
         aria-label="Switch group"
         disabled={loading}
-        className={cn(
-          'flex items-center gap-3 rounded-lg text-left transition-colors',
-          variant === 'sidebar'
-            ? 'w-full px-2 py-1.5 hover:bg-muted'
-            : 'min-h-11 max-w-[60vw] px-2 py-1 hover:bg-muted',
-        )}
+        className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted"
       >
         <span
           className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
@@ -65,8 +71,9 @@ export function GroupSwitcher({ variant = 'sidebar' }: { variant?: 'sidebar' | '
         </span>
         <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       </DropdownMenuTrigger>
+      )}
 
-      <DropdownMenuContent align="start" className="min-w-64">
+      <DropdownMenuContent align={variant === 'compact' ? 'end' : 'start'} className="min-w-64">
         <DropdownMenuItem onSelect={() => navigate('/dashboard')}>
           <LayoutGrid aria-hidden />
           All groups overview

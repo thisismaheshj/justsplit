@@ -28,14 +28,6 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
     })
   : null;
 
-/** Absolute URL Google sends the user back to. Honours the /justsplit/ base. */
-export function authRedirectUrl(): string {
-  const base = import.meta.env.BASE_URL.endsWith('/')
-    ? import.meta.env.BASE_URL
-    : `${import.meta.env.BASE_URL}/`;
-  return `${window.location.origin}${base}auth/callback`;
-}
-
 /**
  * Supabase error messages are aimed at developers. Map the ones a user can
  * actually cause onto something worth reading, and never echo back whether an
