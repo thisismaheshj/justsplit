@@ -58,6 +58,7 @@ export function PersonDetail({ person }: { person: Person }) {
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="truncate text-page font-semibold">{person.name}</h2>
             {isMe && <Badge variant="primary">You</Badge>}
+            {!person.userId && person.inviteEmail && <Badge variant="outline">Invited</Badge>}
             {person.archived && (
               <Badge variant="outline">
                 <Archive aria-hidden />
@@ -68,6 +69,11 @@ export function PersonDetail({ person }: { person: Person }) {
           <p className="mt-1 text-body text-muted-foreground">
             {describePersonOverall(person.name, balance, currency)}
           </p>
+          {!person.userId && person.inviteEmail && (
+            <p className="mt-1 truncate text-caption text-muted-foreground">
+              Joins when {person.inviteEmail} signs up
+            </p>
+          )}
           <div className="mt-2">
             <BalanceAmount balance={balance} currency={currency} size="lg" />
           </div>

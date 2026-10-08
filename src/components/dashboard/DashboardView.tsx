@@ -23,6 +23,7 @@ import {
 } from '@/lib/dashboardApi';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGroupStore } from '@/store/useGroupStore';
+import { errorMessage } from '@/lib/utils';
 
 export function DashboardView() {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export function DashboardView() {
         if (cancelled) return;
         setGroups([]);
         toast.error('Could not load your dashboard', {
-          description: error instanceof Error ? error.message : String(error),
+          description: errorMessage(error),
         });
       }
     })();

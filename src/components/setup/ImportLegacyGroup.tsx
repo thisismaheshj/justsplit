@@ -12,7 +12,7 @@ import { dismissLegacyGroup, type LegacySnapshot } from '@/lib/legacyLocal';
 import { importLocalGroup } from '@/lib/groupsApi';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useGroupStore } from '@/store/useGroupStore';
-import { cn } from '@/lib/utils';
+import { cn, errorMessage } from '@/lib/utils';
 
 /**
  * Before accounts existed, a group lived only in this browser. That data is
@@ -56,7 +56,7 @@ export function ImportLegacyGroup({
     } catch (error) {
       setBusy(false);
       toast.error('Could not import that group', {
-        description: error instanceof Error ? error.message : String(error),
+        description: errorMessage(error),
       });
     }
   }

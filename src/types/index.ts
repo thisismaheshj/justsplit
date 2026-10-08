@@ -35,6 +35,11 @@ export interface Person {
   userId?: string | null;
   /** 'owner' for the person who created the group. */
   role?: 'owner' | 'member';
+  /**
+   * Ghost members only: whoever signs up with this (confirmed) email takes
+   * over this person, history included. Linking happens in Postgres.
+   */
+  inviteEmail?: string;
 }
 
 export interface ParticipantShare {

@@ -26,3 +26,13 @@ const twMerge = extendTailwindMerge({
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
+
+/**
+ * Supabase hands back plain `{ message, code }` objects, not Error instances,
+ * so `String(error)` renders them as "[object Object]".
+ */
+export function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  const message = (error as { message?: unknown } | null)?.message;
+  return typeof message === 'string' && message ? message : String(error);
+}

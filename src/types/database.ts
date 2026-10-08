@@ -74,17 +74,17 @@ export type Database = {
       group_members: {
         Row: {
           archived: boolean; avatar_color: string; avatar_photo: string | null; created_at: string
-          group_id: string; id: string; joined_at: string; name: string; role: string
+          group_id: string; id: string; invite_email: string | null; joined_at: string; name: string; role: string
           updated_at: string; user_id: string | null
         }
         Insert: {
           archived?: boolean; avatar_color?: string; avatar_photo?: string | null; created_at?: string
-          group_id: string; id?: string; joined_at?: string; name: string; role?: string
+          group_id: string; id?: string; invite_email?: string | null; joined_at?: string; name: string; role?: string
           updated_at?: string; user_id?: string | null
         }
         Update: {
           archived?: boolean; avatar_color?: string; avatar_photo?: string | null; created_at?: string
-          group_id?: string; id?: string; joined_at?: string; name?: string; role?: string
+          group_id?: string; id?: string; invite_email?: string | null; joined_at?: string; name?: string; role?: string
           updated_at?: string; user_id?: string | null
         }
         Relationships: []

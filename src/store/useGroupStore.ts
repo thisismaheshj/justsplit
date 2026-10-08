@@ -18,6 +18,7 @@ import { DEFAULT_CATEGORIES, categoryIdFromLabel, isDefaultCategory } from '@/li
 import { colorFromString } from '@/lib/avatar';
 import { generateId } from '@/lib/id';
 import { todayString } from '@/lib/date';
+import { errorMessage } from '@/lib/utils';
 
 /** Remembers which group you were last looking at. The ledger itself is not
  *  cached here -- Postgres is the source of truth. */
@@ -67,8 +68,8 @@ export interface GroupStore extends AppState {
     people: { name: string; avatarPhoto?: string }[],
   ) => Promise<string>;
 
-  addPerson: (name: string, avatarPhoto?: string) => string;
-  updatePerson: (id: string, updates: Partial<Pick<Person, 'name' | 'avatarPhoto'>>) => void;
+  addPerson: (name: string, avatarPhoto?: string, inviteEmail?: string) => string;
+  updatePerson: (id: string, updates: Partial<Pick<Person, 'name' | 'avatarPhoto' | 'inviteEmail'>>) => void;
   removePerson: (id: string) => void;
 
   addExpense: (input: ExpenseInput) => string;
@@ -154,10 +155,30 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
     applyLocal();
     void write().catch((error: unknown) => {
       set({ ...before });
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       toast.error(`Could not ${label}`, { description: message });
     });
   }
+
+  /**
+   * Postgres may link a seat to an account the moment an invite email is
+   * written, and a linked seat shows that account's name and photo. Fold the
+   * row it returns back in, so "joined" shows up without a reload.
+   */
+  const applyMemberLink = (id: string, link: api.MemberLink) =>
+    set((s) => ({
+      people: s.people.map((p) =>
+        p.id === id ? { ...p, userId: link.userId, name: link.name, avatarPhoto: link.avatarPhoto } : p,
+      ),
+    }));
+
+  /** The one constraint a person can trip by hand: an email used twice in a group. */
+  const explainMemberError = (error: unknown): never => {
+    if ((error as { code?: string })?.code === '23505') {
+      throw new Error('Someone else in this group already has that email.');
+    }
+    throw error instanceof Error ? error : new Error((error as { message?: string })?.message ?? String(error));
+  };
 
   const requireGroup = (): string => {
     const id = get().groupId;
@@ -215,7 +236,7 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
       } catch (error) {
         set({ hydrated: true, loading: false });
         toast.error('Could not load your groups', {
-          description: error instanceof Error ? error.message : String(error),
+          description: errorMessage(error),
         });
       }
     },
@@ -229,7 +250,7 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
       } catch (error) {
         set({ hydrated: true, loading: false });
         toast.error('Could not open that group', {
-          description: error instanceof Error ? error.message : String(error),
+          description: errorMessage(error),
         });
       }
     },
@@ -271,7 +292,7 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
 
     /* ------------------------------------------------------------ people -- */
 
-    addPerson: (name, avatarPhoto) => {
+    addPerson: (name, avatarPhoto, inviteEmail) => {
       const groupId = requireGroup();
       const id = generateId();
       const person: Person = {
@@ -282,10 +303,20 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
         createdAt: now(),
         userId: null,
         role: 'member',
+        inviteEmail: inviteEmail?.trim().toLowerCase() || undefined,
       };
       optimistic(
         () => set((s) => ({ people: [...s.people, person] })),
-        () => api.addMember(groupId, { id, name: person.name, avatarColor: person.avatarColor, avatarPhoto }),
+        () =>
+          api
+            .addMember(groupId, {
+              id,
+              name: person.name,
+              avatarColor: person.avatarColor,
+              avatarPhoto,
+              inviteEmail: person.inviteEmail,
+            })
+            .then((link) => applyMemberLink(id, link), explainMemberError),
         `add ${person.name}`,
       );
       return id;
@@ -301,15 +332,21 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
                     ...p,
                     ...(updates.name !== undefined ? { name: updates.name.trim() } : {}),
                     ...('avatarPhoto' in updates ? { avatarPhoto: updates.avatarPhoto } : {}),
+                    ...('inviteEmail' in updates
+                      ? { inviteEmail: updates.inviteEmail?.trim().toLowerCase() || undefined }
+                      : {}),
                   }
                 : p,
             ),
           })),
         () =>
-          api.updateMember(id, {
-            ...(updates.name !== undefined ? { name: updates.name } : {}),
-            ...('avatarPhoto' in updates ? { avatarPhoto: updates.avatarPhoto ?? null } : {}),
-          }),
+          api
+            .updateMember(id, {
+              ...(updates.name !== undefined ? { name: updates.name } : {}),
+              ...('avatarPhoto' in updates ? { avatarPhoto: updates.avatarPhoto ?? null } : {}),
+              ...('inviteEmail' in updates ? { inviteEmail: updates.inviteEmail ?? null } : {}),
+            })
+            .then((link) => applyMemberLink(id, link), explainMemberError),
         'save that change',
       );
     },

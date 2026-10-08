@@ -13,6 +13,7 @@
 | Phase 3 recovery schema (migrations 0003, 0004) | ✅ done |
 | `password-recovery` edge function deployed (JWT verification off — see §7) | ✅ done |
 | Phase 8 profile-photo sync (migration 0016) | ✅ done |
+| Phase 9 claim people by email (migration 0017) | ✅ done |
 | **GitHub Actions secrets point at the new project** | ⛔ needs you — §6 below |
 
 Everything reachable through the management API is finished. What remains lives
@@ -148,3 +149,26 @@ photo is sent to the photo step on its next visit.
   photo shows up immediately without waiting on a reload.
 - Google sign-in has been removed from the sign-in screens: the app is email
   and password only.
+
+
+## 9. Bringing past groups across: claim people by email (Phase 9)
+
+Before accounts existed, each browser kept one group in `localStorage`, and
+everyone in it was just a name. To move one across:
+
+1. Whoever has the old group signs up **on that same device and browser**.
+   The setup screen offers to import it; the people arrive as members with
+   no account ("ghosts"), history intact.
+2. Give each ghost an email: People → the person → Edit → Email, or in SQL:
+   `update public.group_members set invite_email = 'rahul@example.com'
+   where group_id = '…' and name = 'Rahul' and user_id is null;`
+3. When someone signs up with that email, migration 0017 hands them the
+   seat. Every expense and settlement already recorded against it is now
+   theirs, and the group appears on their dashboard. If they already have an
+   account, the link happens as soon as the email is saved.
+
+Only a **confirmed** email claims a seat. With "Confirm email" switched off,
+Supabase confirms every address at signup, so anyone who signs up with a
+friend's email before the friend does gets the friend's seat and can see
+that group. Switch confirmation back on (Authentication → Sign In /
+Providers → Email) to close that; no code change is needed.

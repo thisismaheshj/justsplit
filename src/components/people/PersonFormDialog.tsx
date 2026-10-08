@@ -15,6 +15,7 @@ import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { useGroupStore } from '@/store/useGroupStore';
 import { validatePerson } from '@/lib/validation';
 import { colorFromString } from '@/lib/avatar';
+import { isValidEmail } from '@/lib/authValidation';
 import type { Person } from '@/types';
 
 interface PersonFormDialogProps {
@@ -31,13 +32,17 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
 
   const [name, setName] = useState('');
   const [photo, setPhoto] = useState<string | undefined>();
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string>();
+  const [emailError, setEmailError] = useState<string>();
 
   useEffect(() => {
     if (!open) return;
     setName(person?.name ?? '');
     setPhoto(person?.avatarPhoto);
+    setEmail(person?.inviteEmail ?? '');
     setError(undefined);
+    setEmailError(undefined);
   }, [open, person]);
 
   const duplicate =
@@ -49,16 +54,17 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     const validation = validatePerson({ name });
-    if (!validation.valid) {
-      setError(validation.errors.name);
-      return;
-    }
+    const trimmedEmail = email.trim();
+    const badEmail = trimmedEmail && !isValidEmail(trimmedEmail) ? 'Enter a valid email' : undefined;
+    setError(validation.errors.name);
+    setEmailError(badEmail);
+    if (!validation.valid || badEmail) return;
 
     if (person) {
-      updatePerson(person.id, { name, avatarPhoto: photo });
+      updatePerson(person.id, { name, avatarPhoto: photo, inviteEmail: trimmedEmail || undefined });
       toast.success('Person updated');
     } else {
-      addPerson(name, photo);
+      addPerson(name, photo, trimmedEmail || undefined);
       toast.success(`${name.trim()} added to the group`);
     }
     onOpenChange(false);
@@ -71,7 +77,7 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
             <DialogTitle>{person ? 'Edit person' : 'Add a person'}</DialogTitle>
             <DialogDescription>
               {person
-                ? 'Change their name or photo. Their expense history stays as it is.'
+                ? 'Change their name, photo or email. Their expense history stays as it is.'
                 : 'They will be included in new expenses by default.'}
             </DialogDescription>
           </DialogHeader>
@@ -95,6 +101,30 @@ export function PersonFormDialog({ open, onOpenChange, person }: PersonFormDialo
                 onChange={(event) => {
                   setName(event.target.value);
                   setError(undefined);
+                }}
+              />
+            )}
+          </Field>
+
+          <Field
+            id="person-email"
+            label="Email"
+            optional
+            error={emailError}
+            hint={`When ${name.trim() || 'they'} sign${name.trim() ? 's' : ''} up with this email, the account takes over this person and everything recorded so far.`}
+          >
+            {(fieldProps) => (
+              <Input
+                {...fieldProps}
+                type="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoComplete="off"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setEmailError(undefined);
                 }}
               />
             )}

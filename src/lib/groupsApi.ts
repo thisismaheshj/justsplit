@@ -39,6 +39,7 @@ interface MemberRow {
   name: string;
   avatar_color: string;
   avatar_photo: string | null;
+  invite_email: string | null;
   archived: boolean;
   role: string;
   created_at: string;
@@ -61,6 +62,7 @@ function toPerson(row: MemberRow): Person {
     avatarPhoto: row.avatar_photo ?? undefined,
     archived: row.archived || undefined,
     userId: row.user_id,
+    inviteEmail: row.invite_email ?? undefined,
     role: row.role === 'owner' ? 'owner' : 'member',
     createdAt: row.created_at,
   };
@@ -123,7 +125,7 @@ export async function loadGroup(groupId: string): Promise<GroupSnapshot> {
       client.from('groups').select('id, name, currency, created_at').eq('id', groupId).single(),
       client
         .from('group_members')
-        .select('id, user_id, name, avatar_color, avatar_photo, archived, role, created_at')
+        .select('id, user_id, name, avatar_color, avatar_photo, invite_email, archived, role, created_at')
         .eq('group_id', groupId)
         .order('created_at', { ascending: true }),
       client
@@ -253,16 +255,37 @@ export async function deleteGroup(groupId: string): Promise<void> {
 
 export async function addMember(
   groupId: string,
-  member: { id: string; name: string; avatarColor: string; avatarPhoto?: string },
-): Promise<void> {
-  const { error } = await db().from('group_members').insert({
-    id: member.id,
-    group_id: groupId,
-    name: member.name.trim(),
-    avatar_color: member.avatarColor,
-    avatar_photo: member.avatarPhoto ?? null,
-  });
+  member: { id: string; name: string; avatarColor: string; avatarPhoto?: string; inviteEmail?: string },
+): Promise<MemberLink> {
+  const { data, error } = await db()
+    .from('group_members')
+    .insert({
+      id: member.id,
+      group_id: groupId,
+      name: member.name.trim(),
+      avatar_color: member.avatarColor,
+      avatar_photo: member.avatarPhoto ?? null,
+      invite_email: member.inviteEmail?.trim() || null,
+    })
+    .select('user_id, name, avatar_photo')
+    .single();
   if (error) throw error;
+  return toMemberLink(data);
+}
+
+/**
+ * What the database decided about a seat after a write. An invite email can
+ * link the seat to an existing account on the spot, and a linked seat takes
+ * its name and photo from that account, so the client cannot predict this.
+ */
+export interface MemberLink {
+  userId: string | null;
+  name: string;
+  avatarPhoto?: string;
+}
+
+function toMemberLink(row: { user_id: string | null; name: string; avatar_photo: string | null }): MemberLink {
+  return { userId: row.user_id, name: row.name, avatarPhoto: row.avatar_photo ?? undefined };
 }
 
 export async function updateMember(
@@ -272,18 +295,23 @@ export async function updateMember(
     avatarPhoto?: string | null;
     avatarColor?: string;
     archived?: boolean;
+    inviteEmail?: string | null;
   },
-): Promise<void> {
-  const { error } = await db()
+): Promise<MemberLink> {
+  const { data, error } = await db()
     .from('group_members')
     .update({
       ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
       ...('avatarPhoto' in patch ? { avatar_photo: patch.avatarPhoto ?? null } : {}),
       ...(patch.avatarColor !== undefined ? { avatar_color: patch.avatarColor } : {}),
       ...(patch.archived !== undefined ? { archived: patch.archived } : {}),
+      ...('inviteEmail' in patch ? { invite_email: patch.inviteEmail?.trim() || null } : {}),
     })
-    .eq('id', memberId);
+    .eq('id', memberId)
+    .select('user_id, name, avatar_photo')
+    .single();
   if (error) throw error;
+  return toMemberLink(data);
 }
 
 /** Only safe for a member with no ledger history; the FK refuses otherwise. */

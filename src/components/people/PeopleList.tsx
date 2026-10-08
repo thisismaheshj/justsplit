@@ -57,6 +57,7 @@ export function PeopleList() {
                   <span className="flex items-center gap-2">
                     <span className="truncate text-label font-semibold">{person.name}</span>
                     {person.userId && person.userId === myUserId && <Badge variant="primary">You</Badge>}
+                    {!person.userId && person.inviteEmail && <Badge variant="outline">Invited</Badge>}
                   </span>
                   <span className="block text-caption text-muted-foreground">
                     {describeBalance(balances[person.id] ?? 0, currency)}

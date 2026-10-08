@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useGroupStore } from '@/store/useGroupStore';
+import { errorMessage } from '@/lib/utils';
 
 /** Danger zone: demo data and deleting a group for good. */
 export function DataResetSection() {
@@ -71,7 +72,7 @@ Adds a sample “Goa Trip” group alongside your own — handy for a quick look
             })
             .catch((error: unknown) =>
               toast.error('Could not add the demo group', {
-                description: error instanceof Error ? error.message : String(error),
+                description: errorMessage(error),
               }),
             );
         }}
@@ -102,7 +103,7 @@ Adds a sample “Goa Trip” group alongside your own — handy for a quick look
             })
             .catch((error: unknown) =>
               toast.error('Could not delete that group', {
-                description: error instanceof Error ? error.message : String(error),
+                description: errorMessage(error),
               }),
             );
         }}

@@ -11,7 +11,7 @@ import { useGroupStore } from '@/store/useGroupStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Logo } from '@/components/brand/Logo';
 import { generateId } from '@/lib/id';
-import { cn } from '@/lib/utils';
+import { cn, errorMessage } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const MIN_PEOPLE = 1;
@@ -77,7 +77,7 @@ export function SetupWizard() {
     } catch (error) {
       setSaving(false);
       toast.error('Could not create that group', {
-        description: error instanceof Error ? error.message : String(error),
+        description: errorMessage(error),
       });
     }
   };

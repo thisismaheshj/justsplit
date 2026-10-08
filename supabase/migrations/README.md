@@ -23,6 +23,7 @@ timestamp versions in `supabase_migrations.schema_migrations`. The mapping:
 | `0014_dashboard_summary_rpcs.sql` | `20261008182433` | `dashboard_summary_rpcs` |
 | `0015_member_avatar_colour_from_palette.sql` | `20261008182442` | `member_avatar_colour_from_palette` |
 | `0016_member_seats_mirror_profile.sql` | `20261008182446` | `member_seats_mirror_profile` |
+| `0017_claim_seats_by_email.sql` | `20261008183816` | `claim_seats_by_email` |
 
 Deliberately kept as applied rather than squashed: `0003` ships a column-level
 `REVOKE` that turns out to be a no-op against a table-wide grant, and `0005` is
