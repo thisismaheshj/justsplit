@@ -5,6 +5,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { AuthCard } from '@/components/auth/AuthCard';
+import { GoogleSignIn } from '@/components/auth/GoogleButton';
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { useAuthStore } from '@/store/useAuthStore';
 import { validateSignUp, type SignUpField } from '@/lib/authValidation';
@@ -62,13 +63,14 @@ export default function SignupPage() {
         </>
       }
     >
+      <GoogleSignIn />
+
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <Field id="name" label="Name" error={errors.name}>
           {(p) => (
             <Input
               {...p}
               autoComplete="name"
-              autoFocus
               placeholder="Your full name"
               value={name}
               onChange={(e) => edit<string>('name', setName)(e.target.value)}

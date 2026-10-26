@@ -4,27 +4,38 @@
 
 | Step | State |
 | --- | --- |
-| Project (`emsdruoczxumkpybvxot`; replaced the lost `jugylopmjqidimymhapv`) | ✅ done |
-| Schema + RLS applied (all migrations, 0001-0016) | ✅ done |
+| Project `mhjeecerdqwkjnaputzt` (BlocksFund org; replaced the lost `emsdruoczxumkpybvxot` and `jugylopmjqidimymhapv`) | ✅ done |
+| **Rename the project to JustSplit** (dashboard shows the old name `typeai-dev`) | ⛔ needs you — §1 |
+| Schema + RLS applied (all migrations, 0001-0018) | ✅ done |
 | `.env.local` written with URL + publishable key | ✅ done |
 | Generated types in `src/types/database.ts` | ✅ done |
-| Google sign-in | removed in Phase 8 — email and password only |
+| Google sign-in in the app | ✅ done — button on sign-in and sign-up |
+| **Google provider + redirect URLs** | ⛔ needs you — §4 below |
 | **Email confirmation setting** | ⛔ your call — §5 below |
 | Phase 3 recovery schema (migrations 0003, 0004) | ✅ done |
 | `password-recovery` edge function deployed (JWT verification off — see §7) | ✅ done |
 | Phase 8 profile-photo sync (migration 0016) | ✅ done |
 | Phase 9 claim people by email (migration 0017) | ✅ done |
 | Phase 10 add people by searching accounts (migration 0018) | ✅ done |
-| **GitHub Actions secrets point at the new project** | ⛔ needs you — §6 below |
+| GitHub Actions secrets point at the new project | ✅ done |
 
 Everything reachable through the management API is finished. What remains lives
 in the Supabase and Google dashboards behind your login.
 
 ## 1. Project — done
 
-Project `emsdruoczxumkpybvxot`, Postgres 17. The original project
-(`jugylopmjqidimymhapv`) was lost; this one was rebuilt from
-`supabase/migrations/` on 2026-10-08 and starts with no users or data.
+Project `mhjeecerdqwkjnaputzt` in the BlocksFund org, region `ap-south-1`,
+Postgres 17. It was the empty `typeai-dev` project, cleared and rebuilt from
+`supabase/migrations/` on 2026-10-26, and starts with no users or data.
+
+Two earlier projects are gone: `jugylopmjqidimymhapv` (ClaudeProjectsDB org,
+paused on inactivity, then deleted) and `emsdruoczxumkpybvxot` (Mahesh's Org,
+deleted on 2026-10-22). Free projects pause after a week without traffic, so
+keep an eye on this one.
+
+Rename it in the dashboard so it is easy to find: **Project Settings** →
+**General** → **Project name** → `JustSplit`. The name is a label only; the
+URL and keys do not change.
 
 ## 2. Schema — done
 
@@ -52,9 +63,39 @@ be rotated on its own. The file is gitignored.
 > Never put the **service_role** key in this app. It bypasses row-level security
 > entirely and would be readable by anyone who opens the bundle.
 
-## 4. Google sign-in — removed
+## 4. Google sign-in
 
-Phase 8 made the app email and password only, so no OAuth setup is needed.
+The app has a **Continue with Google** button on both the sign-in and sign-up
+screens. Until the provider below is switched on, pressing it shows "Google
+sign-in is not switched on yet" rather than a Supabase error page. Google
+accounts arrive with their name and photo, so they skip the photo step.
+
+**a. Google Cloud** — [console.cloud.google.com](https://console.cloud.google.com)
+→ **APIs & Services** → **Credentials** → **Create credentials** → **OAuth client ID**:
+
+| Field | Value |
+| --- | --- |
+| Application type | Web application |
+| Authorized JavaScript origins | `https://thisismaheshj.github.io` and `http://localhost:5173` |
+| Authorized redirect URIs | `https://mhjeecerdqwkjnaputzt.supabase.co/auth/v1/callback` |
+
+If asked to set up the consent screen first: External, app name JustSplit, your
+email as support and developer contact. Scopes `email`, `profile` and `openid`
+are the defaults and are all that is needed. Publish the app (or add each
+friend as a test user), or only you will be able to sign in.
+
+**b. Supabase** — **Authentication** → **Sign In / Providers** → **Google**:
+switch it on and paste the client ID and client secret from step a.
+
+**c. Supabase** — **Authentication** → **URL Configuration**:
+
+| Field | Value |
+| --- | --- |
+| Site URL | `https://thisismaheshj.github.io/justsplit/` |
+| Redirect URLs | `https://thisismaheshj.github.io/justsplit/auth/callback` and `http://localhost:5173/auth/callback` |
+
+Without the redirect URLs, Google sends people to the Site URL instead of the
+callback and the sign-in never completes.
 
 ## 5. Email confirmation — your call
 
@@ -148,8 +189,8 @@ photo is sent to the photo step on its next visit.
   in step. Apply it in the SQL editor or with `supabase db push`.
 - Saving a profile also updates your existing seats from the client, so the
   photo shows up immediately without waiting on a reload.
-- Google sign-in has been removed from the sign-in screens: the app is email
-  and password only.
+- Google accounts take their name and photo from Google, so they skip this
+  step.
 
 
 ## 9. Bringing past groups across: claim people by email (Phase 9)

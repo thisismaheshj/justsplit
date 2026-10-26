@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Session, User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured, authErrorMessage } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, authErrorMessage, authRedirectUrl, isGoogleEnabled } from '@/lib/supabase';
 
 export interface Profile {
   id: string;
@@ -36,6 +36,8 @@ export interface AuthStore {
 
   signUpWithEmail: (input: { name: string; email: string; password: string }) => Promise<boolean>;
   signInWithEmail: (input: { email: string; password: string }) => Promise<boolean>;
+  /** Starts the Google redirect. True means the browser is leaving the page. */
+  signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   /** Saves name and photo. Returns an error message, or null on success. */
@@ -141,6 +143,28 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ error: null });
 
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      set({ error: authErrorMessage(error) });
+      return false;
+    }
+    return true;
+  },
+
+  signInWithGoogle: async () => {
+    if (!supabase) return set({ error: notConfigured() }), false;
+    set({ error: null });
+
+    if (!(await isGoogleEnabled())) {
+      set({ error: 'Google sign-in is not switched on yet. Use your email and password for now.' });
+      return false;
+    }
+
+    // Google hands over a name and photo, which handle_new_user copies into
+    // the profile, so a Google account skips the photo step entirely.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: authRedirectUrl() },
+    });
     if (error) {
       set({ error: authErrorMessage(error) });
       return false;

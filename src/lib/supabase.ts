@@ -29,6 +29,36 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
   : null;
 
 /**
+ * Where Google sends the user back to. Must be listed under Authentication →
+ * URL Configuration → Redirect URLs in the Supabase dashboard, or Supabase
+ * falls back to the Site URL and the sign-in never completes.
+ */
+export function authRedirectUrl(): string {
+  const base = import.meta.env.BASE_URL.endsWith('/')
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  return `${window.location.origin}${base}auth/callback`;
+}
+
+/**
+ * Whether Google is switched on for this project. Starting the OAuth redirect
+ * against a disabled provider strands the user on a raw JSON error page at
+ * supabase.co, so ask first. Unknown (a network blip) counts as enabled: the
+ * redirect is the better failure than a false "not available".
+ */
+export async function isGoogleEnabled(): Promise<boolean> {
+  if (!url || !anonKey) return false;
+  try {
+    const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: anonKey } });
+    if (!res.ok) return true;
+    const settings = (await res.json()) as { external?: { google?: boolean } };
+    return settings.external?.google !== false;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Supabase error messages are aimed at developers. Map the ones a user can
  * actually cause onto something worth reading, and never echo back whether an
  * email exists — that is an account-enumeration leak.

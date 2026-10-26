@@ -16,8 +16,14 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     if (status === 'authed') navigate('/', { replace: true });
-    // A failed or cancelled OAuth round trip lands here with no session.
-    else if (status === 'anon') navigate('/login', { replace: true });
+    // A failed or cancelled OAuth round trip lands here with no session, and
+    // the reason in the URL. Carry it to the login screen instead of dropping it.
+    else if (status === 'anon') {
+      const params = new URLSearchParams(window.location.search || window.location.hash.slice(1));
+      const reason = params.get('error_description');
+      if (reason && !error) useAuthStore.setState({ error: `Google sign-in did not finish: ${reason}` });
+      navigate('/login', { replace: true });
+    }
   }, [status, error, navigate]);
 
   return (

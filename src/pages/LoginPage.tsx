@@ -5,6 +5,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { AuthCard } from '@/components/auth/AuthCard';
+import { GoogleSignIn } from '@/components/auth/GoogleButton';
 import { useAuthStore } from '@/store/useAuthStore';
 import { validateSignIn, type SignInField } from '@/lib/authValidation';
 import type { FieldErrors } from '@/lib/validation';
@@ -59,6 +60,8 @@ export default function LoginPage() {
         </>
       }
     >
+      <GoogleSignIn />
+
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <Field id="email" label="Email" error={errors.email}>
           {(p) => (
@@ -68,7 +71,6 @@ export default function LoginPage() {
               inputMode="email"
               autoCapitalize="none"
               autoComplete="email"
-              autoFocus
               placeholder="you@example.com"
               value={email}
               onChange={(e) => edit<string>('email', setEmail)(e.target.value)}
