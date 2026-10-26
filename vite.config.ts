@@ -35,12 +35,20 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      // recover.html is a standalone page that reads whatever a phone still
+      // holds from the deleted databases; it must not boot the app.
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        recover: path.resolve(__dirname, 'recover.html'),
+      },
       output: {
         // Split the big, rarely-changing dependencies into their own chunks so
         // app edits do not invalidate them in the browser cache.
         manualChunks: {
           react: ['react', 'react-dom', 'react-router-dom'],
           motion: ['framer-motion'],
+          // Its own chunk so recover.html loads Supabase and nothing of the app.
+          supabase: ['@supabase/supabase-js'],
           radix: [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
