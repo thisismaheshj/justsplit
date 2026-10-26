@@ -1,0 +1,32 @@
+name: Keep Supabase awake
+
+# Free Supabase projects pause after a week with no database activity, and a
+# paused project looks exactly like a deleted one from the outside. That is
+# how the first JustSplit database was lost. This runs a real query every
+# three days so the project never goes quiet long enough to pause.
+#
+# Can also be triggered by hand from the Actions tab.
+on:
+  schedule:
+    - cron: '17 3 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query the database
+        # A read of profiles goes through PostgREST into Postgres, which is
+        # what counts as activity. Row-level security hands the anon key an
+        # empty list, so nothing is exposed. --fail turns a paused or broken
+        # project into a red run, which GitHub emails you about.
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 20 \
+            "$SUPABASE_URL/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: $SUPABASE_KEY"
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
