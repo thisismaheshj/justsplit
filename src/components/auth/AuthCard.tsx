@@ -58,6 +58,17 @@ export function AuthCard({ title, subtitle, error, children, footer, step }: Aut
         </div>
 
         {footer && <div className="mt-8 text-center text-body text-muted-foreground">{footer}</div>}
+
+        {/* Google's brand check wants the privacy policy linked from the screen
+            people sign in on. A plain link: it is a static page, not a route. */}
+        <div className="mt-6 text-center text-caption text-muted-foreground">
+          <a
+            href={`${import.meta.env.BASE_URL}privacy.html`}
+            className="underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Privacy policy
+          </a>
+        </div>
       </div>
     </main>
   );
