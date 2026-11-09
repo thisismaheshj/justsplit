@@ -34,8 +34,6 @@ export interface AuthStore {
   init: () => () => void;
   clearError: () => void;
 
-  signUpWithEmail: (input: { name: string; email: string; password: string }) => Promise<boolean>;
-  signInWithEmail: (input: { email: string; password: string }) => Promise<boolean>;
   /** Starts the Google redirect. True means the browser is leaving the page. */
   signInWithGoogle: () => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -114,41 +112,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-
-  signUpWithEmail: async ({ name, email, password }) => {
-    if (!supabase) return set({ error: notConfigured() }), false;
-    set({ error: null });
-
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      // Read by the handle_new_user trigger to seed profiles.name.
-      options: { data: { full_name: name.trim() } },
-    });
-
-    if (error) {
-      set({ error: authErrorMessage(error) });
-      return false;
-    }
-    // With email confirmation switched on, there is no session yet.
-    if (!data.session) {
-      set({ error: 'Check your inbox to confirm your email, then sign in.' });
-      return false;
-    }
-    return true;
-  },
-
-  signInWithEmail: async ({ email, password }) => {
-    if (!supabase) return set({ error: notConfigured() }), false;
-    set({ error: null });
-
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (error) {
-      set({ error: authErrorMessage(error) });
-      return false;
-    }
-    return true;
-  },
 
   signInWithGoogle: async () => {
     if (!supabase) return set({ error: notConfigured() }), false;

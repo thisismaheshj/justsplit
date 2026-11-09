@@ -97,53 +97,57 @@ export function AccountSection() {
 
       <EditProfileDialog open={editingProfile} onOpenChange={setEditingProfile} />
 
-      <Card className="p-5">
-        <div className="mb-3 flex items-start gap-3">
-          {questions ? (
-            <ShieldCheck className="mt-0.5 size-5 shrink-0 text-positive" aria-hidden />
-          ) : (
-            <ShieldAlert className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-label font-medium">Password recovery</p>
-            <p className="text-body text-muted-foreground">
-              {!loaded
-                ? 'Checking…'
-                : questions
-                  ? 'Set up. These questions let you reset your password without email.'
-                  : hasPassword
-                    ? 'Not set up. Without this you cannot reset a forgotten password.'
-                    : 'Not set up. You sign in with Google, so this is optional — add it only if you also want a password.'}
-            </p>
-          </div>
-        </div>
-
-        {loaded && questions && !editing && (
-          <ul className="mb-4 flex flex-col gap-1">
-            {questions.map((q) => (
-              <li key={q} className="text-caption text-muted-foreground">— {questionLabel(q)}</li>
-            ))}
-          </ul>
-        )}
-
-        {editing ? (
-          <div className="flex flex-col gap-4">
-            <SecurityQuestionFields value={value} onChange={setValue} errors={errors} />
-            <div className="flex gap-2">
-              <Button onClick={onSave} loading={busy}>Save</Button>
-              <Button variant="ghost" onClick={() => { setEditing(false); setErrors({}); setValue(EMPTY); }}>
-                Cancel
-              </Button>
+      {/* Recovery questions only reset a password. With Google as the only
+          way in, they matter just to accounts that still have one. */}
+      {hasPassword && (
+        <Card className="p-5">
+          <div className="mb-3 flex items-start gap-3">
+            {questions ? (
+              <ShieldCheck className="mt-0.5 size-5 shrink-0 text-positive" aria-hidden />
+            ) : (
+              <ShieldAlert className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-label font-medium">Password recovery</p>
+              <p className="text-body text-muted-foreground">
+                {!loaded
+                  ? 'Checking…'
+                  : questions
+                    ? 'Set up. These questions let you reset your password without email.'
+                    : hasPassword
+                      ? 'Not set up. Without this you cannot reset a forgotten password.'
+                      : 'Not set up. You sign in with Google, so this is optional — add it only if you also want a password.'}
+              </p>
             </div>
           </div>
-        ) : (
-          loaded && (
-            <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
-              {questions ? 'Change questions' : 'Set up recovery'}
-            </Button>
-          )
-        )}
-      </Card>
+
+          {loaded && questions && !editing && (
+            <ul className="mb-4 flex flex-col gap-1">
+              {questions.map((q) => (
+                <li key={q} className="text-caption text-muted-foreground">— {questionLabel(q)}</li>
+              ))}
+            </ul>
+          )}
+
+          {editing ? (
+            <div className="flex flex-col gap-4">
+              <SecurityQuestionFields value={value} onChange={setValue} errors={errors} />
+              <div className="flex gap-2">
+                <Button onClick={onSave} loading={busy}>Save</Button>
+                <Button variant="ghost" onClick={() => { setEditing(false); setErrors({}); setValue(EMPTY); }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            loaded && (
+              <Button variant="secondary" size="sm" onClick={() => setEditing(true)}>
+                {questions ? 'Change questions' : 'Set up recovery'}
+              </Button>
+            )
+          )}
+        </Card>
+      )}
     </div>
   );
 }

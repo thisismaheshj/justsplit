@@ -13,9 +13,7 @@ import { readLegacyGroup } from '@/lib/legacyLocal';
 // The sign-in screens ship with the first download: they are small, and they
 // are what a signed-out visitor needs straight away.
 import LoginPage from '@/pages/LoginPage';
-import SignupPage from '@/pages/SignupPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 
 // Everything behind sign-in loads separately. prefetchAppPages starts these
 // downloads the moment a session is known, so they arrive alongside the
@@ -197,10 +195,12 @@ export default function App() {
         <Routes>
           {/* Public */}
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          {/* Email sign-up and password reset are gone: Google is the only way
+              in. Old links and bookmarks land on the sign-in screen. */}
+          <Route path="/signup" element={<Navigate to="/login" replace />} />
+          <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
           <Route element={<RedirectIfAuthed />}>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           </Route>
 
           {/* Authenticated */}

@@ -65,6 +65,14 @@ be rotated on its own. The file is gitignored.
 
 ## 4. Google sign-in
 
+**Google is the only way in** (since 2026-11-09). The email/password form,
+sign-up and password-reset pages are gone; `/signup` and `/forgot-password`
+redirect to `/login`. Accounts created earlier with an email and password are
+linked to Google automatically when the Gmail address matches (Supabase links
+identities with the same confirmed email), so their data carries over. To stop
+new email sign-ups at the API as well, switch off **Authentication → Sign In /
+Providers → Email** — the app no longer offers it either way.
+
 The app has a **Continue with Google** button on both the sign-in and sign-up
 screens. Until the provider below is switched on, pressing it shows "Google
 sign-in is not switched on yet" rather than a Supabase error page. Google

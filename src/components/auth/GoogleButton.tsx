@@ -15,9 +15,8 @@ function GoogleMark() {
 }
 
 /**
- * Google sign-in plus the "or" rule that separates it from the email form
- * below. Sign-in and sign-up are the same redirect: Supabase creates the
- * account on first use.
+ * The only way in. Sign-in and sign-up are the same redirect: Supabase
+ * creates the account on first use.
  */
 export function GoogleSignIn() {
   const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
@@ -31,16 +30,9 @@ export function GoogleSignIn() {
   }
 
   return (
-    <>
-      <Button type="button" variant="secondary" size="lg" className="w-full" onClick={() => void onClick()} loading={busy}>
-        {!busy && <GoogleMark />}
-        Continue with Google
-      </Button>
-      <div className="my-5 flex items-center gap-3 text-caption text-muted-foreground" role="separator">
-        <span className="h-px flex-1 bg-border" />
-        or use email
-        <span className="h-px flex-1 bg-border" />
-      </div>
-    </>
+    <Button type="button" variant="secondary" size="lg" className="w-full" onClick={() => void onClick()} loading={busy}>
+      {!busy && <GoogleMark />}
+      Continue with Google
+    </Button>
   );
 }
