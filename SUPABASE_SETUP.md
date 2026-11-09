@@ -97,6 +97,36 @@ switch it on and paste the client ID and client secret from step a.
 Without the redirect URLs, Google sends people to the Site URL instead of the
 callback and the sign-in never completes.
 
+### Brand verification (so Google's screen says JustSplit)
+
+Until Google verifies the brand, its sign-in screen shows
+`mhjeecerdqwkjnaputzt.supabase.co` instead of the app's name. The app uses only
+`openid`, `email` and `profile`, so this is the quick brand review (a few
+business days), not a security assessment.
+
+Google Cloud → **Google Auth Platform → Branding**:
+
+| Field | Value |
+| --- | --- |
+| App name | `JustSplit` (must match the name on the home page) |
+| App logo | `public/logo-120.png` (120×120) |
+| Application home page | `https://thisismaheshj.github.io/justsplit/` |
+| Privacy policy | `https://thisismaheshj.github.io/justsplit/privacy.html` |
+| Terms of service | leave empty |
+| Authorized domains | `thisismaheshj.github.io` and `mhjeecerdqwkjnaputzt.supabase.co` |
+
+**Audience** must be *In production*. Then **Verification Center → Verify branding**.
+
+Domain ownership: Google wants `thisismaheshj.github.io` verified in
+[Search Console](https://search.google.com/search-console) as a URL-prefix
+property for `https://thisismaheshj.github.io/` (the root, not `/justsplit/`).
+The HTML-file method needs that file served from the root, which on GitHub
+Pages means a repository named `thisismaheshj.github.io` holding it.
+
+What the review looks at on our side, all in place: the sign-in screen shows
+the name and says what the app does, links to the privacy policy, and the
+policy covers Google user data under the Limited Use requirements.
+
 ## 5. Email confirmation — your call
 
 By default Supabase emails a confirmation link before a new account can sign in.

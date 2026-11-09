@@ -26,7 +26,10 @@ export function AuthCard({ title, subtitle, error, children, footer, step }: Aut
     >
       <div className="w-full max-w-[400px]">
         <div className="mb-8 flex flex-col items-center text-center">
-          <LogoMark className="mb-6 size-11" />
+          <LogoMark className="size-11" />
+          {/* The name in words, not just the mark: this is the first screen
+              anyone sees, and Google's brand review checks it shows the app's name. */}
+          <span className="mb-6 mt-2 text-label font-semibold tracking-tight text-foreground">JustSplit</span>
           {step && (
             <div className="mb-4 flex gap-1.5" role="img" aria-label={`Step ${step.current} of ${step.total}`}>
               {Array.from({ length: step.total }, (_, i) => (

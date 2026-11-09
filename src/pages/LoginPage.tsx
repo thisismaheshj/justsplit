@@ -49,7 +49,7 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="Welcome back"
-      subtitle="Sign in to pick up where you left off"
+      subtitle="Track shared expenses with friends, and settle up"
       error={error}
       footer={
         <>
