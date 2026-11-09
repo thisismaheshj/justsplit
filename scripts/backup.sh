@@ -35,6 +35,19 @@ if [[ "${1:-}" == "--setup" ]]; then
   read -r -s -p "Connection string: " uri
   echo
   [[ "$uri" == postgresql://* ]] || { echo "That does not look like a postgresql:// connection string."; exit 1; }
+  # Characters like @ # / : in the password break the URI unless encoded, and
+  # Supabase's copy button leaves that to you. The host follows the LAST @, so
+  # everything between the first : and that @ is the password: encode it.
+  # Already-encoded passwords are decoded first, so this is safe to repeat.
+  uri=$(URI="$uri" /usr/bin/python3 -c '
+import os, urllib.parse as u
+s = os.environ["URI"]
+scheme, rest = s.split("://", 1)
+userinfo, host = rest.rsplit("@", 1)
+user, _, pw = userinfo.partition(":")
+pw = pw.strip("[]") if pw.startswith("[") and pw.endswith("]") else pw
+print(f"{scheme}://{user}:{u.quote(u.unquote(pw), safe=str())}@{host}")
+')
   security add-generic-password -U -a "$USER" -s "$KEYCHAIN_SERVICE" -w "$uri"
   echo "Saved. Run scripts/backup.sh --now to take the first backup."
   exit 0
