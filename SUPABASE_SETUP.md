@@ -241,16 +241,12 @@ ones can no longer be created.
 
 ## 11. Hosting and backups
 
-**Hosting.** The app is served from two places, both built from `main`:
-
-| Where | URL | Notes |
-| --- | --- | --- |
-| Vercel (main) | `https://justsplit-app.vercel.app` | `vercel.json`: SPA rewrite, year-long caching for hashed assets |
-| GitHub Pages | `https://thisismaheshj.github.io/justsplit/` | kept as a fallback, and for `recover.html`, which reads data saved under this address |
-
-Sign-in is per address, so someone switching addresses signs in once more.
-Both callback URLs must be listed in Supabase → Authentication → URL
-Configuration → Redirect URLs.
+**Hosting.** GitHub Pages, at `https://thisismaheshj.github.io/justsplit/`,
+deployed by `.github/workflows/deploy.yml` on every push to `main`. A move to
+Vercel was tried on 2026-11-09 and rolled back: it would have tied the app to
+a Vercel account already over its free limits, and made everyone sign in
+again on a new address. A custom domain (about $10 a year) is the way to a
+cleaner URL; GitHub Pages supports one directly.
 
 **Keep-alive.** `.github/workflows/keep-alive.yml` queries the database every
 three days so the free project never pauses, and re-enables its own schedule
