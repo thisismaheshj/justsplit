@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { listenForInstallPrompt } from '@/lib/installPrompt';
 import { keepFocusedFieldVisible } from '@/lib/keyboard';
 import { listenForStaleBuild } from '@/lib/staleBuild';
+import { stopIosFocusZoom } from '@/lib/iosViewport';
 
 // Read any persisted Supabase session and subscribe to auth changes before the
 // first render, so route guards never see a stale 'loading' for longer than the
@@ -16,6 +17,7 @@ useAuthStore.getState().init();
 listenForInstallPrompt();
 keepFocusedFieldVisible();
 listenForStaleBuild();
+stopIosFocusZoom();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
