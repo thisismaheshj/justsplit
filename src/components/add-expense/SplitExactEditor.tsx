@@ -35,7 +35,7 @@ export function SplitExactEditor({
                 onChange={(event) =>
                   onChange(person.id, sanitizeAmountInput(event.target.value, currency))
                 }
-                className="h-10 w-24 rounded-lg border border-input bg-card px-2 text-right text-body tabular"
+                className="h-10 w-24 rounded-lg border border-input bg-card px-2 text-right text-label tabular md:text-body"
               />
             </span>
           }

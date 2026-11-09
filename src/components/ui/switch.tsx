@@ -11,6 +11,9 @@ export const Switch = React.forwardRef<
       ref={ref}
       className={cn(
         'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors',
+        // A 24px-tall switch is a small thing to hit with a thumb; this widens
+        // what counts as a tap to 44px without moving anything around it.
+        'relative after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-[""]',
         'data-[state=checked]:bg-primary data-[state=unchecked]:bg-border-strong',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,

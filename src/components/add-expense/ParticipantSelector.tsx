@@ -31,7 +31,7 @@ export function ParticipantSelector({
         <button
           type="button"
           onClick={allSelected ? onClear : onSelectAll}
-          className="rounded-md px-2 py-1 text-caption font-medium text-primary hover:bg-primary-soft"
+          className="-my-2 min-h-10 rounded-md px-3 text-caption font-medium text-primary hover:bg-primary-soft"
         >
           {allSelected ? 'Clear all' : 'Select everyone'}
         </button>

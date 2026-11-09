@@ -11,7 +11,11 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="JustSplit" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- resizes-visual: the keyboard covers the page rather than shrinking it, so
+         opening it never reflows the layout (src/lib/keyboard.ts keeps the
+         focused field in view instead). Android Chrome needs this; iOS already
+         behaves this way. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual" />
     <meta name="theme-color" content="#FAFAF9" />
     <title>JustSplit — Simple expense splitting</title>
     <meta name="description" content="JustSplit tracks shared expenses with friends: who paid, who owes whom, and how to settle up." />

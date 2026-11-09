@@ -94,13 +94,21 @@ export function AddExpenseForm({ expense }: AddExpenseFormProps) {
   );
 
   // Errors surface once a field has been visited or a save was attempted, so
-  // the form is never red on first load.
+  // the form is never red on first load. A field left empty says nothing on
+  // blur: on a phone, "Enter an amount" popping in the moment you tap on to the
+  // description pushed the whole form down under your thumb, and Save is
+  // already disabled with a hint saying what is missing.
   const [touched, setTouched] = useState<Set<ExpenseField>>(new Set());
   const touch = (field: ExpenseField) => setTouched((current) => new Set(current).add(field));
+  const hasInput: Partial<Record<ExpenseField, boolean>> = {
+    amount: form.amountText.trim() !== '',
+    description: description.trim() !== '',
+  };
 
   const errors: FieldErrors<ExpenseField> = Object.fromEntries(
-    Object.entries(validation.errors).filter(([field]) =>
-      submitted || touched.has(field as ExpenseField),
+    Object.entries(validation.errors).filter(
+      ([field]) =>
+        submitted || (touched.has(field as ExpenseField) && hasInput[field as ExpenseField] !== false),
     ),
   );
   const endDateError =

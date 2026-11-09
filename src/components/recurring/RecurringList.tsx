@@ -97,6 +97,10 @@ export function RecurringList() {
                           </Badge>
                           <Badge variant="outline">{frequencyLabel(template.frequency)}</Badge>
                         </div>
+                        {/* Under the title on a phone, so the details below get the full width. */}
+                        <p className="mt-0.5 text-label font-semibold tabular sm:hidden">
+                          {formatCurrency(template.amount, currency)}
+                        </p>
 
                         <p className="mt-1 flex flex-wrap items-center gap-1.5 text-caption text-muted-foreground">
                           {payer && <Avatar person={payer} size="xs" />}
@@ -118,7 +122,7 @@ export function RecurringList() {
                         </p>
                       </div>
 
-                      <p className="shrink-0 text-label font-semibold tabular">
+                      <p className="hidden shrink-0 text-label font-semibold tabular sm:block">
                         {formatCurrency(template.amount, currency)}
                       </p>
                     </div>

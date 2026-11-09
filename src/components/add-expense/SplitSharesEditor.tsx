@@ -47,7 +47,7 @@ export function SplitSharesEditor({
                     const next = Number(event.target.value.replace(/\D/g, ''));
                     onChange(person.id, Math.min(MAX_SHARES, Math.max(1, next || 1)));
                   }}
-                  className="h-9 w-12 rounded-lg border border-input bg-card text-center text-body tabular"
+                  className="h-9 w-12 rounded-lg border border-input bg-card text-center text-label tabular md:text-body"
                 />
                 <button
                   type="button"

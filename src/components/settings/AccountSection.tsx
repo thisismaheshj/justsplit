@@ -12,7 +12,8 @@ export function AccountSection() {
   const signOut = useAuthStore((s) => s.signOut);
   const [editingProfile, setEditingProfile] = useState(false);
 
-  const providers = (user?.identities ?? []).map((i) => i.provider);
+  const providerNames: Record<string, string> = { google: 'Google', email: 'email' };
+  const providers = (user?.identities ?? []).map((i) => providerNames[i.provider] ?? i.provider);
 
   return (
     <div className="flex flex-col gap-4">

@@ -5,6 +5,7 @@ import App from './App';
 import './index.css';
 import { useAuthStore } from '@/store/useAuthStore';
 import { listenForInstallPrompt } from '@/lib/installPrompt';
+import { keepFocusedFieldVisible } from '@/lib/keyboard';
 
 // Read any persisted Supabase session and subscribe to auth changes before the
 // first render, so route guards never see a stale 'loading' for longer than the
@@ -12,6 +13,7 @@ import { listenForInstallPrompt } from '@/lib/installPrompt';
 useAuthStore.getState().init();
 // Chrome offers installation once, early; catch it before anything renders.
 listenForInstallPrompt();
+keepFocusedFieldVisible();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

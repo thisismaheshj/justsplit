@@ -58,6 +58,11 @@ export function ExpenseDetail({ expense }: { expense: Expense }) {
           <CategoryIcon icon={category.icon} size="lg" />
           <div className="min-w-0 flex-1">
             <h2 className="text-section font-semibold">{expense.description}</h2>
+            {/* On a phone the amount sits under the title; beside it, it left
+                the title, badges and "Added by" a thin column to wrap in. */}
+            <p className="mt-1 text-page font-semibold tabular sm:hidden">
+              {formatCurrency(expense.amount, currency)}
+            </p>
             <p className="mt-0.5 text-body text-muted-foreground">
               {formatLongDate(expense.date)}
             </p>
@@ -82,7 +87,7 @@ export function ExpenseDetail({ expense }: { expense: Expense }) {
               {edited && expense.editedAt && <> · edited {formatEditedAt(expense.editedAt)}</>}
             </p>
           </div>
-          <p className="shrink-0 text-page font-semibold tabular">
+          <p className="hidden shrink-0 text-page font-semibold tabular sm:block">
             {formatCurrency(expense.amount, currency)}
           </p>
         </div>

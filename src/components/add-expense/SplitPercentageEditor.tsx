@@ -31,7 +31,7 @@ export function SplitPercentageEditor({
                 value={values[person.id] ?? ''}
                 placeholder="0"
                 onChange={(event) => onChange(person.id, sanitizePercent(event.target.value))}
-                className="h-10 w-20 rounded-lg border border-input bg-card px-2 text-right text-body tabular"
+                className="h-10 w-20 rounded-lg border border-input bg-card px-2 text-right text-label tabular md:text-body"
               />
               <span className="text-body text-muted-foreground" aria-hidden>
                 %
