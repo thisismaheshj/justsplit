@@ -13,6 +13,8 @@ on:
 
 permissions:
   contents: read
+  # Lets the run re-enable its own schedule; see the last step.
+  actions: write
 
 jobs:
   ping:
@@ -30,3 +32,12 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Keep this schedule from expiring
+        # GitHub switches off scheduled workflows in a repo with no commits for
+        # 60 days. Re-enabling the workflow resets that clock, so the ping
+        # keeps running however long the code goes untouched.
+        run: gh api --method PUT "repos/$REPO/actions/workflows/keep-alive.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}

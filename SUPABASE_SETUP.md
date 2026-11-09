@@ -237,3 +237,45 @@ makes "search and add" work; restricting it would mean invite links instead.
 People without an account still exist in groups imported from before
 accounts (§9). They can be renamed or given an email to be claimed, but new
 ones can no longer be created.
+
+
+## 11. Hosting and backups
+
+**Hosting.** The app is served from two places, both built from `main`:
+
+| Where | URL | Notes |
+| --- | --- | --- |
+| Vercel (main) | `https://justsplit-app.vercel.app` | `vercel.json`: SPA rewrite, year-long caching for hashed assets |
+| GitHub Pages | `https://thisismaheshj.github.io/justsplit/` | kept as a fallback, and for `recover.html`, which reads data saved under this address |
+
+Sign-in is per address, so someone switching addresses signs in once more.
+Both callback URLs must be listed in Supabase → Authentication → URL
+Configuration → Redirect URLs.
+
+**Keep-alive.** `.github/workflows/keep-alive.yml` queries the database every
+three days so the free project never pauses, and re-enables its own schedule
+so GitHub's 60-day inactivity switch-off never applies.
+
+**Backups.** The free plan keeps none. `scripts/backup.sh` runs from launchd
+on the developer's Mac (installed by `scripts/install-backup.sh`) and writes a
+weekly copy to `~/Backups/JustSplit/`, keeping 26:
+
+- `public.sql.gz` — every app table, schema and rows.
+- `auth-users.sql.gz` — the accounts (`auth.users`, `auth.identities`), rows only.
+
+One-time setup: `scripts/backup.sh --setup`, then paste the **Session pooler**
+connection string (dashboard → **Connect**) with the database password in it.
+It is kept in the login Keychain. `scripts/backup.sh --now` takes one at once.
+
+To restore into a **new, empty** project (not one the migrations have run on):
+
+1. `gunzip -c auth-users.sql.gz | psql "$URI"` — accounts first, while no
+   triggers exist on `auth.users` to react to them.
+2. `gunzip -c public.sql.gz | psql "$URI"` — tables, rows, functions and
+   row-level-security policies, exactly as they were.
+3. Re-create the three triggers that live on `auth.users`, which a `public`
+   copy cannot carry: the `create trigger` statements at the end of
+   `0001_auth_profiles.sql` (`on_auth_user_created`) and
+   `0017_claim_seats_by_email.sql` (`on_auth_user_created_claim_seats`,
+   `on_auth_user_confirmed_claim_seats`).
+4. Redeploy the `password-recovery` edge function (§7).
