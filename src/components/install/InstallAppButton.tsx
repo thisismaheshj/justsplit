@@ -2,8 +2,9 @@ import { lazy, Suspense, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Download, X } from 'lucide-react';
 import { isIos, promptInstall, useInstallStore } from '@/lib/installPrompt';
+import { withReloadOnStaleBuild } from '@/lib/staleBuild';
 
-const IosInstallGuide = lazy(() => import('./IosInstallGuide'));
+const IosInstallGuide = lazy(withReloadOnStaleBuild(() => import('./IosInstallGuide')));
 
 const DISMISSED_KEY = 'justsplit-install-dismissed-at';
 const DISMISS_FOR_MS = 30 * 24 * 60 * 60 * 1000;

@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 import { InstallAppButton } from '@/components/install/InstallAppButton';
+import { ScreenErrorBoundary } from '@/components/layout/ScreenErrorBoundary';
+import { withReloadOnStaleBuild } from '@/lib/staleBuild';
 import { useGroupStore } from '@/store/useGroupStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -18,25 +20,26 @@ import AuthCallbackPage from '@/pages/AuthCallbackPage';
 
 // Everything behind sign-in loads separately. prefetchAppPages starts these
 // downloads the moment a session is known, so they arrive alongside the
-// profile and group reads instead of after them.
+// profile and group reads instead of after them. An app left open across a
+// deploy asks for files that no longer exist; withReloadOnStaleBuild reloads
+// it onto the new version rather than leaving the screen blank.
 const appPages = {
-  AppShell: () =>
-    import('@/components/layout/AppShell').then((m) => ({
-      default: m.AppShell,
-    })),
-  ProfileSetupPage: () => import('@/pages/ProfileSetupPage'),
-  SetupPage: () => import('@/pages/SetupPage'),
-  NewGroupPage: () => import('@/pages/NewGroupPage'),
-  DashboardPage: () => import('@/pages/DashboardPage'),
-  HomePage: () => import('@/pages/HomePage'),
-  PeoplePage: () => import('@/pages/PeoplePage'),
-  PersonDetailPage: () => import('@/pages/PersonDetailPage'),
-  ExpensesPage: () => import('@/pages/ExpensesPage'),
-  ExpenseDetailPage: () => import('@/pages/ExpenseDetailPage'),
-  AddExpensePage: () => import('@/pages/AddExpensePage'),
-  SettleUpPage: () => import('@/pages/SettleUpPage'),
-  RecurringPage: () => import('@/pages/RecurringPage'),
-  SettingsPage: () => import('@/pages/SettingsPage'),
+  AppShell: withReloadOnStaleBuild(() =>
+    import('@/components/layout/AppShell').then((m) => ({ default: m.AppShell })),
+  ),
+  ProfileSetupPage: withReloadOnStaleBuild(() => import('@/pages/ProfileSetupPage')),
+  SetupPage: withReloadOnStaleBuild(() => import('@/pages/SetupPage')),
+  NewGroupPage: withReloadOnStaleBuild(() => import('@/pages/NewGroupPage')),
+  DashboardPage: withReloadOnStaleBuild(() => import('@/pages/DashboardPage')),
+  HomePage: withReloadOnStaleBuild(() => import('@/pages/HomePage')),
+  PeoplePage: withReloadOnStaleBuild(() => import('@/pages/PeoplePage')),
+  PersonDetailPage: withReloadOnStaleBuild(() => import('@/pages/PersonDetailPage')),
+  ExpensesPage: withReloadOnStaleBuild(() => import('@/pages/ExpensesPage')),
+  ExpenseDetailPage: withReloadOnStaleBuild(() => import('@/pages/ExpenseDetailPage')),
+  AddExpensePage: withReloadOnStaleBuild(() => import('@/pages/AddExpensePage')),
+  SettleUpPage: withReloadOnStaleBuild(() => import('@/pages/SettleUpPage')),
+  RecurringPage: withReloadOnStaleBuild(() => import('@/pages/RecurringPage')),
+  SettingsPage: withReloadOnStaleBuild(() => import('@/pages/SettingsPage')),
 };
 
 let prefetched = false;
@@ -190,56 +193,58 @@ export default function App() {
         Skip to content
       </a>
 
-      <Suspense fallback={<AuthBootSkeleton />}>
-        <Routes>
-          {/* Public */}
-          <Route path="/auth/callback" element={<AuthCallbackPage />} />
-          {/* Email sign-up and password reset are gone: Google is the only way
+      <ScreenErrorBoundary>
+        <Suspense fallback={<AuthBootSkeleton />}>
+          <Routes>
+            {/* Public */}
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            {/* Email sign-up and password reset are gone: Google is the only way
               in. Old links and bookmarks land on the sign-in screen. */}
-          <Route path="/signup" element={<Navigate to="/login" replace />} />
-          <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
-          <Route element={<RedirectIfAuthed />}>
-            <Route path="/login" element={<LoginPage />} />
-          </Route>
+            <Route path="/signup" element={<Navigate to="/login" replace />} />
+            <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
+            <Route element={<RedirectIfAuthed />}>
+              <Route path="/login" element={<LoginPage />} />
+            </Route>
 
-          {/* Authenticated */}
-          <Route element={<RequireAuth />}>
-            <Route path="/setup-profile" element={<ProfileSetupPage />} />
+            {/* Authenticated */}
+            <Route element={<RequireAuth />}>
+              <Route path="/setup-profile" element={<ProfileSetupPage />} />
 
-            <Route element={<RequireProfile />}>
-              {/* Security questions are gone with password sign-in. */}
-              <Route path="/setup-recovery" element={<Navigate to="/" replace />} />
+              <Route element={<RequireProfile />}>
+                {/* Security questions are gone with password sign-in. */}
+                <Route path="/setup-recovery" element={<Navigate to="/" replace />} />
 
-              <Route element={<GroupGate />}>
-                <Route path="/" element={<IndexRoute />} />
-                <Route path="/setup" element={<SetupPage />} />
-                <Route path="/groups/new" element={<NewGroupPage />} />
+                <Route element={<GroupGate />}>
+                  <Route path="/" element={<IndexRoute />} />
+                  <Route path="/setup" element={<SetupPage />} />
+                  <Route path="/groups/new" element={<NewGroupPage />} />
 
-                <Route element={<AppShell />}>
-                  {/* The dashboard spans every group, so it must not sit behind
+                  <Route element={<AppShell />}>
+                    {/* The dashboard spans every group, so it must not sit behind
                     RequireGroup -- a brand-new account has no active group yet. */}
-                  <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
 
-                  <Route element={<RequireGroup />}>
-                    <Route path="/home" element={<HomePage />} />
-                    <Route path="/people" element={<PeoplePage />} />
-                    <Route path="/people/:personId" element={<PersonDetailPage />} />
-                    <Route path="/expenses" element={<ExpensesPage />} />
-                    <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
-                    <Route path="/add-expense" element={<AddExpensePage />} />
-                    <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
-                    <Route path="/settle-up" element={<SettleUpPage />} />
-                    <Route path="/recurring" element={<RecurringPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
+                    <Route element={<RequireGroup />}>
+                      <Route path="/home" element={<HomePage />} />
+                      <Route path="/people" element={<PeoplePage />} />
+                      <Route path="/people/:personId" element={<PersonDetailPage />} />
+                      <Route path="/expenses" element={<ExpensesPage />} />
+                      <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
+                      <Route path="/add-expense" element={<AddExpensePage />} />
+                      <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
+                      <Route path="/settle-up" element={<SettleUpPage />} />
+                      <Route path="/recurring" element={<RecurringPage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
+                    </Route>
                   </Route>
                 </Route>
               </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ScreenErrorBoundary>
 
       <Toaster />
       <InstallAppButton />
