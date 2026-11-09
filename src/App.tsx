@@ -24,7 +24,6 @@ const appPages = {
     import('@/components/layout/AppShell').then((m) => ({
       default: m.AppShell,
     })),
-  SetupRecoveryPage: () => import('@/pages/SetupRecoveryPage'),
   ProfileSetupPage: () => import('@/pages/ProfileSetupPage'),
   SetupPage: () => import('@/pages/SetupPage'),
   NewGroupPage: () => import('@/pages/NewGroupPage'),
@@ -49,7 +48,6 @@ function prefetchAppPages() {
 }
 
 const AppShell = lazy(appPages.AppShell);
-const SetupRecoveryPage = lazy(appPages.SetupRecoveryPage);
 const ProfileSetupPage = lazy(appPages.ProfileSetupPage);
 const SetupPage = lazy(appPages.SetupPage);
 const NewGroupPage = lazy(appPages.NewGroupPage);
@@ -209,7 +207,8 @@ export default function App() {
             <Route path="/setup-profile" element={<ProfileSetupPage />} />
 
             <Route element={<RequireProfile />}>
-              <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
+              {/* Security questions are gone with password sign-in. */}
+              <Route path="/setup-recovery" element={<Navigate to="/" replace />} />
 
               <Route element={<GroupGate />}>
                 <Route path="/" element={<IndexRoute />} />

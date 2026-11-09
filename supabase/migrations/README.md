@@ -26,6 +26,7 @@ timestamp versions in `supabase_migrations.schema_migrations`. The mapping:
 | `0017_claim_seats_by_email.sql` | `20261026153831` | `claim_seats_by_email` |
 | `0018_search_accounts.sql` | `20261026153835` | `search_accounts` |
 | `0019_expense_owner_and_edit_limit.sql` | `20261109140025` | `expense_owner_and_edit_limit` |
+| `0020_switch_off_password_recovery.sql` | `20261109140435` | `switch_off_password_recovery` |
 
 Deliberately kept as applied rather than squashed: `0003` ships a column-level
 `REVOKE` that turns out to be a no-op against a table-wide grant, and `0005` is

@@ -13,7 +13,7 @@
 | **Google provider + redirect URLs** | ⛔ needs you — §4 below |
 | **Email confirmation setting** | ⛔ your call — §5 below |
 | Phase 3 recovery schema (migrations 0003, 0004) | ✅ done |
-| `password-recovery` edge function deployed (JWT verification off — see §7) | ✅ done |
+| `password-recovery` edge function | switched off (stub returning 410) — see §7 |
 | Phase 8 profile-photo sync (migration 0016) | ✅ done |
 | Phase 9 claim people by email (migration 0017) | ✅ done |
 | Phase 10 add people by searching accounts (migration 0018) | ✅ done |
@@ -174,6 +174,12 @@ client-side routes survive a hard refresh.
 
 
 ## 7. Password recovery (Phase 3)
+
+> **Switched off on 2026-11-09.** With Google as the only sign-in there is no
+> password to reset. Migration 0020 revoked access to the recovery functions,
+> the `password-recovery` edge function is now a stub that answers 410, and the
+> app's question screens are gone. The rest of this section describes the old
+> flow; the functions and `user_recovery` table are kept so it can be restored.
 
 Reset works entirely in-app, with no email, per PRD 5.1 Option A.
 
