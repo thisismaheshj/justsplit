@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Pencil, Repeat, StickyNote, Trash2 } from 'lucide-react';
+import { Lock, Pencil, Repeat, StickyNote, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Avatar } from '@/components/ui/avatar';
@@ -12,10 +12,22 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SectionHeader } from '@/components/ui/section-header';
 
 import { useGroupStore } from '@/store/useGroupStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { expenseAccess, MAX_EXPENSE_EDITS } from '@/lib/expenseAccess';
 import { findCategory } from '@/lib/categories';
 import { formatCurrency } from '@/lib/currency';
 import { formatLongDate } from '@/lib/date';
 import type { Expense } from '@/types';
+
+/** "9 Nov, 7:45 pm": when it was edited, in the viewer's own time zone. */
+function formatEditedAt(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 const METHOD_LABEL: Record<string, string> = {
   equal: 'Split equally',
@@ -33,6 +45,11 @@ export function ExpenseDetail({ expense }: { expense: Expense }) {
   const category = findCategory(store.categories, expense.category);
   const payer = store.people.find((p) => p.id === expense.paidBy);
   const template = store.recurringExpenses.find((r) => r.id === expense.recurringExpenseId);
+  const userId = useAuthStore((s) => s.user?.id);
+  const access = expenseAccess(expense, userId);
+  const creator = expense.createdBy ? store.people.find((p) => p.userId === expense.createdBy) : undefined;
+  const creatorName = access.isCreator ? 'you' : (creator?.name ?? 'someone else');
+  const edited = (expense.editCount ?? 0) > 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,7 +70,17 @@ export function ExpenseDetail({ expense }: { expense: Expense }) {
                   Recurring
                 </Badge>
               )}
+              {edited && (
+                <Badge variant="outline">
+                  <Pencil aria-hidden />
+                  Edited
+                </Badge>
+              )}
             </div>
+            <p className="mt-2 text-caption text-muted-foreground">
+              Added by {creatorName}
+              {edited && expense.editedAt && <> · edited {formatEditedAt(expense.editedAt)}</>}
+            </p>
           </div>
           <p className="shrink-0 text-page font-semibold tabular">
             {formatCurrency(expense.amount, currency)}
@@ -130,22 +157,38 @@ export function ExpenseDetail({ expense }: { expense: Expense }) {
         </Card>
       )}
 
-      <div className="flex gap-2">
-        <Button asChild className="flex-1 sm:flex-none sm:px-8">
-          <Link to={`/add-expense/${expense.id}`}>
-            <Pencil aria-hidden />
-            Edit expense
-          </Link>
-        </Button>
-        <Button
-          variant="secondary"
-          className="text-negative"
-          onClick={() => setConfirmDelete(true)}
-        >
-          <Trash2 aria-hidden />
-          Delete
-        </Button>
-      </div>
+      {access.isCreator ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            {access.canEdit && (
+              <Button asChild className="flex-1 sm:flex-none sm:px-8">
+                <Link to={`/add-expense/${expense.id}`}>
+                  <Pencil aria-hidden />
+                  Edit expense
+                </Link>
+              </Button>
+            )}
+            <Button
+              variant="secondary"
+              className={access.canEdit ? 'text-negative' : 'flex-1 text-negative sm:flex-none'}
+              onClick={() => setConfirmDelete(true)}
+            >
+              <Trash2 aria-hidden />
+              Delete
+            </Button>
+          </div>
+          <p className="text-caption text-muted-foreground">
+            {access.canEdit
+              ? `${access.editsLeft} of ${MAX_EXPENSE_EDITS} edits left.`
+              : `You've used both edits, so this expense can no longer be changed. You can still delete it.`}
+          </p>
+        </div>
+      ) : (
+        <p className="flex items-start gap-2 text-body text-muted-foreground">
+          <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
+          Only {creator?.name ?? 'the person who added it'} can edit or delete this expense.
+        </p>
+      )}
 
       <ConfirmDialog
         open={confirmDelete}

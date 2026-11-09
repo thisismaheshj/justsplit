@@ -19,6 +19,8 @@ import { colorFromString } from '@/lib/avatar';
 import { generateId } from '@/lib/id';
 import { todayString } from '@/lib/date';
 import { errorMessage } from '@/lib/utils';
+import { useAuthStore } from '@/store/useAuthStore';
+import { expenseAccess, isSameExpense } from '@/lib/expenseAccess';
 
 /** Remembers which group you were last looking at. The ledger itself is not
  *  cached here -- Postgres is the source of truth. */
@@ -384,7 +386,7 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
 
     addExpense: (input) => {
       const groupId = requireGroup();
-      const expense = api.buildExpenseRecord(input);
+      const expense = api.buildExpenseRecord(input, undefined, useAuthStore.getState().user?.id);
       optimistic(
         () => set((s) => ({ expenses: [...s.expenses, expense] })),
         () => api.saveExpense(groupId, expense),
@@ -396,6 +398,18 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
     updateExpense: (id, input) => {
       const groupId = requireGroup();
       const existing = get().expenses.find((e) => e.id === id);
+      if (existing) {
+        // The screens only offer Edit when it is allowed; this is the backstop,
+        // and the database (migration 0019) is the one that actually enforces it.
+        if (!expenseAccess(existing, useAuthStore.getState().user?.id).canEdit) {
+          toast.error('You cannot edit this expense', {
+            description: 'Only the person who added it can, and only twice.',
+          });
+          return;
+        }
+        // Saving with nothing changed is not an edit, here or in the database.
+        if (isSameExpense(existing, api.buildExpenseRecord(input, existing))) return;
+      }
       const expense = api.buildExpenseRecord(input, existing);
       optimistic(
         () => set((s) => ({ expenses: s.expenses.map((e) => (e.id === id ? expense : e)) })),
@@ -405,6 +419,11 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
     },
 
     deleteExpense: (id) => {
+      const existing = get().expenses.find((e) => e.id === id);
+      if (existing && !expenseAccess(existing, useAuthStore.getState().user?.id).canDelete) {
+        toast.error('You cannot delete this expense', { description: 'Only the person who added it can.' });
+        return;
+      }
       optimistic(
         () => set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) })),
         () => api.deleteExpense(id),
@@ -504,7 +523,7 @@ export const useGroupStore = create<GroupStore>()((set, get) => {
       const groupId = state.groupId;
       const created: Expense[] = [];
       for (const id of ids) {
-        for (const input of results[id].expenses) created.push(api.buildExpenseRecord(input));
+        for (const input of results[id].expenses) created.push(api.buildExpenseRecord(input, undefined, useAuthStore.getState().user?.id));
       }
 
       const updatedTemplates = state.recurringExpenses.map((r) => {

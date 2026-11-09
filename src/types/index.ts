@@ -69,6 +69,12 @@ export interface Expense {
   date: string;
   note?: string;
   recurringExpenseId?: string;
+  /** Account that added it; only they may change it (migration 0019). */
+  createdBy?: string;
+  /** Edits so far, at most MAX_EXPENSE_EDITS. */
+  editCount?: number;
+  /** When it was last edited; absent if never. */
+  editedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -49,17 +49,20 @@ export type Database = {
       }
       expenses: {
         Row: {
-          amount: number; category: string; created_at: string; date: string; description: string
+          amount: number; category: string; created_at: string; created_by: string | null; date: string
+          description: string; edit_count: number; edited_at: string | null
           group_id: string; id: string; note: string | null; paid_by: string
           recurring_expense_id: string | null; split_method: string; updated_at: string
         }
         Insert: {
-          amount: number; category?: string; created_at?: string; date: string; description: string
+          amount: number; category?: string; created_at?: string; created_by?: string | null; date: string
+          description: string; edit_count?: number; edited_at?: string | null
           group_id: string; id?: string; note?: string | null; paid_by: string
           recurring_expense_id?: string | null; split_method: string; updated_at?: string
         }
         Update: {
-          amount?: number; category?: string; created_at?: string; date?: string; description?: string
+          amount?: number; category?: string; created_at?: string; created_by?: string | null; date?: string
+          description?: string; edit_count?: number; edited_at?: string | null
           group_id?: string; id?: string; note?: string | null; paid_by?: string
           recurring_expense_id?: string | null; split_method?: string; updated_at?: string
         }

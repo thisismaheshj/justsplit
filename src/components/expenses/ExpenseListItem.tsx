@@ -91,6 +91,12 @@ export function ExpenseListItem({
           <span>
             {participants.length} {participants.length === 1 ? 'person' : 'people'}
           </span>
+          {(transaction.editCount ?? 0) > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <span>Edited</span>
+            </>
+          )}
           {showDate && (
             <>
               <span aria-hidden>·</span>

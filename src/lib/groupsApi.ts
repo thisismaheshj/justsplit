@@ -131,7 +131,7 @@ export async function loadGroup(groupId: string): Promise<GroupSnapshot> {
       client
         .from('expenses')
         .select(
-          'id, description, amount, paid_by, split_method, category, date, note, recurring_expense_id, created_at, updated_at, expense_participants(member_id, input_value, amount_owed, position)',
+          'id, description, amount, paid_by, split_method, category, date, note, recurring_expense_id, created_by, edit_count, edited_at, created_at, updated_at, expense_participants(member_id, input_value, amount_owed, position)',
         )
         .eq('group_id', groupId),
       client
@@ -165,6 +165,9 @@ export async function loadGroup(groupId: string): Promise<GroupSnapshot> {
     date: e.date,
     note: e.note ?? undefined,
     recurringExpenseId: e.recurring_expense_id ?? undefined,
+    createdBy: e.created_by ?? undefined,
+    editCount: e.edit_count,
+    editedAt: e.edited_at ?? undefined,
     createdAt: e.created_at,
     updatedAt: e.updated_at,
   }));
@@ -546,9 +549,15 @@ export async function importLocalGroup(
 }
 
 /** Rebuilds an expense record from raw form input, reusing the shared maths. */
+/**
+ * The record as the database will hold it after a save. createdBy and the edit
+ * counters are set by the database (migration 0019); they are mirrored here so
+ * the screen is right before the round trip ends.
+ */
 export function buildExpenseRecord(
   input: ExpenseInput,
   existing?: Expense,
+  userId?: string,
 ): Expense {
   const participants = computeSplit(input.splitMethod, input.amount, input.participants);
   const now = new Date().toISOString();
@@ -564,6 +573,9 @@ export function buildExpenseRecord(
     date: input.date,
     note: input.note?.trim() || undefined,
     recurringExpenseId: input.recurringExpenseId ?? existing?.recurringExpenseId,
+    createdBy: existing ? existing.createdBy : userId,
+    editCount: existing ? (existing.editCount ?? 0) + 1 : 0,
+    editedAt: existing ? now : undefined,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
