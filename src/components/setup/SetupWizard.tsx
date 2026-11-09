@@ -78,7 +78,7 @@ export function SetupWizard() {
         </div>
 
         <div>
-          <h1 className="text-page font-semibold">{STEPS[step].title}</h1>
+          <h1 className="text-page font-display">{STEPS[step].title}</h1>
           <p className="mt-1 text-body text-muted-foreground">{STEPS[step].hint}</p>
         </div>
       </header>

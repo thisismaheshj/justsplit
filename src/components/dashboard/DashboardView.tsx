@@ -91,7 +91,7 @@ export function DashboardView() {
       <div className="flex items-center gap-3">
         <ProfileAvatar size="lg" className="ring-2 ring-card" />
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-page font-semibold">
+          <h2 className="truncate text-page font-display">
             {firstName ? `Hello, ${firstName}` : 'Overview'}
           </h2>
           <p className="text-body text-muted-foreground">

@@ -39,7 +39,7 @@ export function HomeDashboard() {
     <div className="flex flex-col gap-7">
       <div className="hidden md:flex md:items-center md:justify-between md:gap-4">
         <div>
-          <h2 className="text-page font-semibold">{store.group?.name}</h2>
+          <h2 className="text-page font-display">{store.group?.name}</h2>
           <p className="text-body text-muted-foreground">
             {activePeople.length} {activePeople.length === 1 ? 'person' : 'people'} sharing expenses
           </p>

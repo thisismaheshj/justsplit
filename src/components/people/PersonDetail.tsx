@@ -56,7 +56,7 @@ export function PersonDetail({ person }: { person: Person }) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-page font-semibold">{person.name}</h2>
+            <h2 className="truncate text-page font-display">{person.name}</h2>
             {isMe && <Badge variant="primary">You</Badge>}
             {!person.userId && person.inviteEmail && <Badge variant="outline">Invited</Badge>}
             {person.archived && (

@@ -43,7 +43,7 @@ export function AuthCard({ title, subtitle, error, children, footer, step }: Aut
               ))}
             </div>
           )}
-          <h1 className="text-page font-semibold text-foreground">{title}</h1>
+          <h1 className="text-page font-display text-foreground">{title}</h1>
           <p className="mt-1.5 text-body text-muted-foreground">{subtitle}</p>
         </div>
 

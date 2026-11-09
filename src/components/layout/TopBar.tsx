@@ -57,7 +57,7 @@ export function TopBar() {
           </button>
         )}
 
-        <h1 className="min-w-0 flex-1 truncate text-section font-semibold md:text-page">{title}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-section font-display md:text-page">{title}</h1>
 
         {/* The sidebar carries the switcher and account from md up; below
             that they live here. Detail screens drop the switcher so the title

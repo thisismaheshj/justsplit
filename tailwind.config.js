@@ -6,8 +6,8 @@ export default {
     container: { center: true, padding: '1rem', screens: { '2xl': '1200px' } },
     extend: {
       fontFamily: {
-        sans: ['Geist', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
-        mono: ['Geist Mono', 'ui-monospace', 'JetBrains Mono', 'SFMono-Regular', 'Menlo', 'monospace'],
+        sans: ['Geist', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['Geist Serif', 'ui-serif', 'Georgia', 'Times New Roman', 'serif'],
       },
       fontSize: {
         // 5-step type scale only
