@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
+  // The press shrink is plain CSS: every screen has buttons, and pulling the
+  // animation library in for this alone would put it on every page load.
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-[color,background-color,border-color,transform] duration-[120ms] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
@@ -46,17 +47,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
     );
   }
   return (
-    <motion.button
+    <button
       ref={ref}
-      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
-      transition={{ duration: 0.12 }}
       className={cn(buttonVariants({ variant, size }), className)}
       disabled={disabled || loading}
-      {...(props as React.ComponentProps<typeof motion.button>)}
+      {...props}
     >
       {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
       {children}
-    </motion.button>
+    </button>
   );
 });
 

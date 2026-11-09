@@ -43,19 +43,19 @@ export default defineConfig({
       },
       output: {
         // Split the big, rarely-changing dependencies into their own chunks so
-        // app edits do not invalidate them in the browser cache.
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          motion: ['framer-motion'],
+        // app edits do not invalidate them in the browser cache. Matched by
+        // package rather than listed as entries: the list form also drags each
+        // entry's small dependencies along, so a helper the Button uses pulled
+        // all of Radix and the animation library into every first load.
+        manualChunks(id) {
+          if (!id.includes('/node_modules/')) return undefined;
+          if (/\/node_modules\/(react|react-dom|scheduler|react-router|react-router-dom|@remix-run\/router)\//.test(id)) return 'react';
           // Its own chunk so recover.html loads Supabase and nothing of the app.
-          supabase: ['@supabase/supabase-js'],
-          radix: [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-select',
-            '@radix-ui/react-tabs',
-          ],
+          if (id.includes('/node_modules/@supabase/')) return 'supabase';
+          if (/\/node_modules\/(framer-motion|motion-dom|motion-utils)\//.test(id)) return 'motion';
+          // Radix and the rest are left to Rollup, which splits them by which
+          // screens actually use them.
+          return undefined;
         },
       },
     },

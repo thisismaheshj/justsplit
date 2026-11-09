@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
-import { AppShell } from '@/components/layout/AppShell';
 import { Toaster } from '@/components/ui/toaster';
 import { useGroupStore } from '@/store/useGroupStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -11,24 +10,60 @@ import { Button } from '@/components/ui/button';
 import { isProfileComplete } from '@/lib/authValidation';
 import { readLegacyGroup } from '@/lib/legacyLocal';
 
+// The sign-in screens ship with the first download: they are small, and they
+// are what a signed-out visitor needs straight away.
 import LoginPage from '@/pages/LoginPage';
 import SignupPage from '@/pages/SignupPage';
 import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
-import SetupRecoveryPage from '@/pages/SetupRecoveryPage';
-import ProfileSetupPage from '@/pages/ProfileSetupPage';
-import SetupPage from '@/pages/SetupPage';
-import NewGroupPage from '@/pages/NewGroupPage';
-import DashboardPage from '@/pages/DashboardPage';
-import HomePage from '@/pages/HomePage';
-import PeoplePage from '@/pages/PeoplePage';
-import PersonDetailPage from '@/pages/PersonDetailPage';
-import ExpensesPage from '@/pages/ExpensesPage';
-import ExpenseDetailPage from '@/pages/ExpenseDetailPage';
-import AddExpensePage from '@/pages/AddExpensePage';
-import SettleUpPage from '@/pages/SettleUpPage';
-import RecurringPage from '@/pages/RecurringPage';
-import SettingsPage from '@/pages/SettingsPage';
+
+// Everything behind sign-in loads separately. prefetchAppPages starts these
+// downloads the moment a session is known, so they arrive alongside the
+// profile and group reads instead of after them.
+const appPages = {
+  AppShell: () =>
+    import('@/components/layout/AppShell').then((m) => ({
+      default: m.AppShell,
+    })),
+  SetupRecoveryPage: () => import('@/pages/SetupRecoveryPage'),
+  ProfileSetupPage: () => import('@/pages/ProfileSetupPage'),
+  SetupPage: () => import('@/pages/SetupPage'),
+  NewGroupPage: () => import('@/pages/NewGroupPage'),
+  DashboardPage: () => import('@/pages/DashboardPage'),
+  HomePage: () => import('@/pages/HomePage'),
+  PeoplePage: () => import('@/pages/PeoplePage'),
+  PersonDetailPage: () => import('@/pages/PersonDetailPage'),
+  ExpensesPage: () => import('@/pages/ExpensesPage'),
+  ExpenseDetailPage: () => import('@/pages/ExpenseDetailPage'),
+  AddExpensePage: () => import('@/pages/AddExpensePage'),
+  SettleUpPage: () => import('@/pages/SettleUpPage'),
+  RecurringPage: () => import('@/pages/RecurringPage'),
+  SettingsPage: () => import('@/pages/SettingsPage'),
+};
+
+let prefetched = false;
+function prefetchAppPages() {
+  if (prefetched) return;
+  prefetched = true;
+  // A failed prefetch is harmless: the route's own lazy import retries.
+  for (const load of Object.values(appPages)) load().catch(() => {});
+}
+
+const AppShell = lazy(appPages.AppShell);
+const SetupRecoveryPage = lazy(appPages.SetupRecoveryPage);
+const ProfileSetupPage = lazy(appPages.ProfileSetupPage);
+const SetupPage = lazy(appPages.SetupPage);
+const NewGroupPage = lazy(appPages.NewGroupPage);
+const DashboardPage = lazy(appPages.DashboardPage);
+const HomePage = lazy(appPages.HomePage);
+const PeoplePage = lazy(appPages.PeoplePage);
+const PersonDetailPage = lazy(appPages.PersonDetailPage);
+const ExpensesPage = lazy(appPages.ExpensesPage);
+const ExpenseDetailPage = lazy(appPages.ExpenseDetailPage);
+const AddExpensePage = lazy(appPages.AddExpensePage);
+const SettleUpPage = lazy(appPages.SettleUpPage);
+const RecurringPage = lazy(appPages.RecurringPage);
+const SettingsPage = lazy(appPages.SettingsPage);
 
 /**
  * Everything below /login requires a session. While the status is still
@@ -38,7 +73,22 @@ import SettingsPage from '@/pages/SettingsPage';
  */
 function RequireAuth() {
   const status = useAuthStore((s) => s.status);
+  const userId = useAuthStore((s) => s.user?.id);
+  const bootstrap = useGroupStore((s) => s.bootstrap);
+  const clearLocal = useGroupStore((s) => s.clearLocal);
   const location = useLocation();
+
+  // Groups load here rather than behind the profile check, so the profile read
+  // and the group reads run side by side instead of one after the other.
+  useEffect(() => {
+    if (!userId) {
+      // Signing out must not leave the previous account's ledger in memory.
+      clearLocal();
+      return;
+    }
+    prefetchAppPages();
+    void bootstrap();
+  }, [userId, bootstrap, clearLocal]);
 
   if (status === 'loading') return <AuthBootSkeleton />;
   if (status === 'anon') {
@@ -88,29 +138,18 @@ function AuthBootSkeleton() {
 }
 
 /**
- * Loads the signed-in user's groups once, then holds the rest of the app back
- * until that first read settles. Without the wait, a returning user is bounced
+ * Holds the rest of the app back until the first group read (started by
+ * RequireAuth) settles. Without the wait, a returning user is bounced
  * to /setup for a frame because "no group yet" and "not loaded yet" look
  * identical -- the same trap the old localStorage gate solved.
  */
 function GroupGate() {
   const userId = useAuthStore((s) => s.user?.id);
   const hydrated = useGroupStore((s) => s.hydrated);
-  const bootstrap = useGroupStore((s) => s.bootstrap);
-  const clearLocal = useGroupStore((s) => s.clearLocal);
   const syncAccountSeat = useGroupStore((s) => s.syncAccountSeat);
   const people = useGroupStore((s) => s.people);
   const profileName = useAuthStore((s) => s.profile?.name);
   const profilePhoto = useAuthStore((s) => s.profile?.avatarUrl);
-
-  useEffect(() => {
-    if (!userId) {
-      // Signing out must not leave the previous account's ledger in memory.
-      clearLocal();
-      return;
-    }
-    void bootstrap();
-  }, [userId, bootstrap, clearLocal]);
 
   // Your own seat always shows your current profile, including the moment
   // after you change your photo, without waiting for a group reload.
@@ -154,51 +193,53 @@ export default function App() {
         Skip to content
       </a>
 
-      <Routes>
-        {/* Public */}
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
-        <Route element={<RedirectIfAuthed />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        </Route>
+      <Suspense fallback={<AuthBootSkeleton />}>
+        <Routes>
+          {/* Public */}
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+          <Route element={<RedirectIfAuthed />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          </Route>
 
-        {/* Authenticated */}
-        <Route element={<RequireAuth />}>
-          <Route path="/setup-profile" element={<ProfileSetupPage />} />
+          {/* Authenticated */}
+          <Route element={<RequireAuth />}>
+            <Route path="/setup-profile" element={<ProfileSetupPage />} />
 
-          <Route element={<RequireProfile />}>
-            <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
+            <Route element={<RequireProfile />}>
+              <Route path="/setup-recovery" element={<SetupRecoveryPage />} />
 
-            <Route element={<GroupGate />}>
-              <Route path="/" element={<IndexRoute />} />
-              <Route path="/setup" element={<SetupPage />} />
-              <Route path="/groups/new" element={<NewGroupPage />} />
+              <Route element={<GroupGate />}>
+                <Route path="/" element={<IndexRoute />} />
+                <Route path="/setup" element={<SetupPage />} />
+                <Route path="/groups/new" element={<NewGroupPage />} />
 
-              <Route element={<AppShell />}>
-                {/* The dashboard spans every group, so it must not sit behind
+                <Route element={<AppShell />}>
+                  {/* The dashboard spans every group, so it must not sit behind
                     RequireGroup -- a brand-new account has no active group yet. */}
-                <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
 
-                <Route element={<RequireGroup />}>
-                  <Route path="/home" element={<HomePage />} />
-                  <Route path="/people" element={<PeoplePage />} />
-                  <Route path="/people/:personId" element={<PersonDetailPage />} />
-                  <Route path="/expenses" element={<ExpensesPage />} />
-                  <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
-                  <Route path="/add-expense" element={<AddExpensePage />} />
-                  <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
-                  <Route path="/settle-up" element={<SettleUpPage />} />
-                  <Route path="/recurring" element={<RecurringPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
+                  <Route element={<RequireGroup />}>
+                    <Route path="/home" element={<HomePage />} />
+                    <Route path="/people" element={<PeoplePage />} />
+                    <Route path="/people/:personId" element={<PersonDetailPage />} />
+                    <Route path="/expenses" element={<ExpensesPage />} />
+                    <Route path="/expenses/:expenseId" element={<ExpenseDetailPage />} />
+                    <Route path="/add-expense" element={<AddExpensePage />} />
+                    <Route path="/add-expense/:expenseId" element={<AddExpensePage />} />
+                    <Route path="/settle-up" element={<SettleUpPage />} />
+                    <Route path="/recurring" element={<RecurringPage />} />
+                    <Route path="/settings" element={<SettingsPage />} />
+                  </Route>
                 </Route>
               </Route>
             </Route>
           </Route>
-        </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
 
       <Toaster />
     </>
